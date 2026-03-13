@@ -18,25 +18,13 @@ export default function Home() {
         </p>
 
         <a
-  href="https://tally.so/r/ODPO7Y"
-  target="_blank"
-  className="mt-6 block w-full text-center rounded-2xl bg-[#2C2A29] text-white px-4 py-3"
->
-  Join the waitlist
-</a>
-          <input
-            type="email"
-            required
-            placeholder="Email address"
-            className="flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none"
-          />
-          <button
-            type="submit"
-            className="rounded-2xl bg-[#2C2A29] text-white px-4 py-3"
-          >
-            Join
-          </button>
-        </form>
+          href="https://tally.so/r/ODPO7Y"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 block w-full text-center rounded-2xl bg-[#2C2A29] text-white px-4 py-3"
+        >
+          Join the waitlist
+        </a>
 
         <div className="mt-6 text-xs opacity-60">
           Private by default. No public profiles.
