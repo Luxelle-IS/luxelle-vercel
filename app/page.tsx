@@ -17,7 +17,13 @@ export default function Home() {
           estimated value range for your collection.
         </p>
 
-        <form className="mt-6 flex gap-2">
+        <a
+  href="https://tally.so/r/ODPO7Y"
+  target="_blank"
+  className="mt-6 block w-full text-center rounded-2xl bg-[#2C2A29] text-white px-4 py-3"
+>
+  Join the waitlist
+</a>
           <input
             type="email"
             required
