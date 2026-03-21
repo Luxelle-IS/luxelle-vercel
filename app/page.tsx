@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import AuthCard from "../components/AuthCard";
 
@@ -21,6 +21,7 @@ type SavedBag = {
   estimated_high: number;
   image_url: string;
   created_at: string;
+  user_id: string | null;
 };
 
 function formatCurrency(value: number) {
@@ -29,6 +30,20 @@ function formatCurrency(value: number) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatConfidence(confidence: string) {
+  if (confidence === "high") return "High confidence";
+  if (confidence === "medium") return "Moderate confidence";
+  return "Low confidence";
+}
+
+function formatDate(dateString: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(dateString));
 }
 
 export default function Home() {
@@ -41,6 +56,14 @@ export default function Home() {
   const [collection, setCollection] = useState<SavedBag[]>([]);
   const [collectionLoading, setCollectionLoading] = useState(true);
 
+  function clearCurrentBagState() {
+    setResult(null);
+    setPreview("");
+    setError("");
+    setSaveMessage("");
+    setLoading(false);
+  }
+
   async function loadUser() {
     const {
       data: { user },
@@ -52,13 +75,27 @@ export default function Home() {
   async function loadCollection() {
     setCollectionLoading(true);
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setCollection([]);
+      setCollectionLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("bags")
       .select("*")
+      .eq("user_id", user.id)
+      .not("user_id", "is", null)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
       setCollection(data);
+    } else {
+      setCollection([]);
     }
 
     setCollectionLoading(false);
@@ -71,7 +108,9 @@ export default function Home() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
+      clearCurrentBagState();
       loadUser();
+      loadCollection();
     });
 
     return () => {
@@ -136,6 +175,15 @@ export default function Home() {
 
     setSaveMessage("");
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setSaveMessage("You must be logged in to save.");
+      return;
+    }
+
     const { error } = await supabase.from("bags").insert([
       {
         brand: result.brand,
@@ -144,6 +192,7 @@ export default function Home() {
         estimated_low: result.estimatedLow,
         estimated_high: result.estimatedHigh,
         image_url: preview,
+        user_id: user.id,
       },
     ]);
 
@@ -152,245 +201,374 @@ export default function Home() {
       return;
     }
 
-    setSaveMessage("Saved to collection.");
+    setSaveMessage("Saved to your collection.");
+    loadCollection();
+  }
+
+  async function deleteBag(id: number) {
+    const confirmed = window.confirm("Delete this bag from your collection?");
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("bags").delete().eq("id", id);
+
+    if (error) {
+      alert("Could not delete bag.");
+      return;
+    }
+
     loadCollection();
   }
 
   async function signOut() {
     await supabase.auth.signOut();
     setUserEmail(null);
+    setCollection([]);
+    clearCurrentBagState();
   }
 
-  const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
-  const totalHigh = collection.reduce((sum, bag) => sum + (bag.estimated_high || 0), 0);
+  const totalLow = collection.reduce(
+    (sum, bag) => sum + (bag.estimated_low || 0),
+    0
+  );
+
+  const totalHigh = collection.reduce(
+    (sum, bag) => sum + (bag.estimated_high || 0),
+    0
+  );
+
+  const averageValue =
+    collection.length > 0 ? Math.round((totalLow + totalHigh) / 2 / collection.length) : 0;
+
+  const mostValuableBag = useMemo(() => {
+    if (collection.length === 0) return null;
+    return [...collection].sort(
+      (a, b) => (b.estimated_high || 0) - (a.estimated_high || 0)
+    )[0];
+  }, [collection]);
+
+  const latestBag = collection.length > 0 ? collection[0] : null;
 
   return (
-    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-6 py-10">
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
+              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                 Luxelle
               </div>
-              <div className="mt-2 text-sm opacity-70">
+              <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">
+                Your private luxury
+                <br />
+                collection dashboard
+              </h1>
+              <div className="mt-3 text-sm opacity-70">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
               </div>
             </div>
 
-            {userEmail && (
-              <button
-                onClick={signOut}
-                className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-2 text-sm"
-              >
-                Log out
-              </button>
-            )}
+            <div className="flex gap-3">
+              {userEmail ? (
+                <button
+                  onClick={signOut}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
+                >
+                  Log out
+                </button>
+              ) : (
+                <a
+                  href="https://tally.so/r/ODPO7Y"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+                >
+                  Join the waitlist
+                </a>
+              )}
+            </div>
           </div>
         </div>
 
         {!userEmail && (
           <div className="mb-8">
-            <AuthCard onAuthSuccess={loadUser} />
+            <AuthCard
+              onAuthSuccess={() => {
+                clearCurrentBagState();
+                loadUser();
+                loadCollection();
+              }}
+            />
           </div>
         )}
 
-        <div className="rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
-          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
-            Luxelle
-          </div>
-
-          <h1 className="mt-4 text-3xl font-semibold leading-tight">
-            Your luxury closet,
-            <br />
-            beautifully organized.
-          </h1>
-
-          <p className="mt-4 text-[15px] leading-relaxed opacity-80">
-            Add your handbags with a photo, get a suggested match, and begin
-            building your digital luxury collection.
-          </p>
-
-          <a
-            href="https://tally.so/r/ODPO7Y"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 block w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-white transition hover:opacity-90"
-          >
-            Join the waitlist
-          </a>
-
-          <div className="mt-8 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-            <div className="text-sm font-medium">Try bag identification</div>
-            <p className="mt-1 text-sm opacity-70">
-              Upload a photo and Luxelle will suggest the closest match.
-            </p>
-
-            <label className="mt-4 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#D8C7B8] bg-white px-4 py-8 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
-              <div>
-                <div className="font-medium">Upload a bag photo</div>
-                <div className="mt-1 text-xs opacity-60">
-                  JPG, PNG, or HEIC
-                </div>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          {preview && (
-            <div className="mt-6 overflow-hidden rounded-3xl border border-black/5 bg-white">
-              <img
-                src={preview}
-                alt="Bag preview"
-                className="h-72 w-full object-cover"
-              />
-            </div>
-          )}
-
-          {loading && (
-            <div className="mt-6 rounded-3xl bg-[#F3EAE1] p-4 text-sm">
-              Identifying your bag...
-            </div>
-          )}
-
-          {error && !loading && (
-            <div className="mt-6 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
-                Error
-              </div>
-              <div className="mt-3 text-sm text-red-700">{error}</div>
-            </div>
-          )}
-
-          {result && !loading && (
-            <div className="mt-6 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-6">
-              <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
-                Suggested match
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-8">
+            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                Collection Overview
               </div>
 
-              <div className="mt-3 text-xl font-semibold">{result.brand}</div>
-
-              <div className="text-lg opacity-80">{result.model}</div>
-
-              <div className="mt-4 h-px bg-[#E7DDD3]" />
-
-              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-60">
-                Confidence
-              </div>
-
-              <div className="mt-2 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
-                {result.confidence === "high"
-                  ? "High confidence"
-                  : result.confidence === "medium"
-                  ? "Moderate confidence"
-                  : "Low confidence"}
-              </div>
-
-              <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-60">
-                Estimated resale value
-              </div>
-
-              <div className="mt-2 text-base font-medium">
-                {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
-              </div>
-
-              <div className="mt-2 text-xs opacity-60">
-                Early estimate based on brand and model category.
-              </div>
-
-              <button
-                onClick={saveToCollection}
-                className="mt-6 w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
-              >
-                Save to collection
-              </button>
-
-              {saveMessage && (
-                <div className="mt-3 text-sm opacity-80">{saveMessage}</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
-          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
-            Collection Overview
-          </div>
-
-          {collectionLoading ? (
-            <div className="mt-4 text-sm opacity-70">Loading overview...</div>
-          ) : (
-            <div className="mt-6 grid grid-cols-1 gap-4">
-              <div className="rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
-                  Total items
-                </div>
-                <div className="mt-2 text-2xl font-semibold">
-                  {collection.length}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
-                  Estimated total value
-                </div>
-                <div className="mt-2 text-xl font-semibold">
-                  {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
-          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
-            My Collection
-          </div>
-
-          {collectionLoading ? (
-            <div className="mt-4 text-sm opacity-70">Loading collection...</div>
-          ) : collection.length === 0 ? (
-            <div className="mt-4 text-sm opacity-70">
-              No bags saved yet.
-            </div>
-          ) : (
-            <div className="mt-6 space-y-4">
-              {collection.map((bag) => (
-                <div
-                  key={bag.id}
-                  className="overflow-hidden rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4]"
-                >
-                  {bag.image_url && (
-                    <img
-                      src={bag.image_url}
-                      alt={`${bag.brand} ${bag.model}`}
-                      className="h-56 w-full object-cover"
-                    />
-                  )}
-
-                  <div className="p-5">
-                    <div className="text-lg font-semibold">{bag.brand}</div>
-                    <div className="text-base opacity-80">{bag.model}</div>
-
-                    <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-60">
-                      Estimated resale value
+              {collectionLoading ? (
+                <div className="mt-6 text-sm opacity-70">Loading overview...</div>
+              ) : (
+                <>
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Total items
+                      </div>
+                      <div className="mt-3 text-3xl font-semibold">
+                        {collection.length}
+                      </div>
                     </div>
-                    <div className="mt-2 text-sm font-medium">
-                      {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Portfolio value
+                      </div>
+                      <div className="mt-3 text-lg font-semibold leading-snug">
+                        {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Average bag value
+                      </div>
+                      <div className="mt-3 text-2xl font-semibold">
+                        {formatCurrency(averageValue)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <div className="mt-6 text-xs opacity-60">
-            Private by default. No public profiles.
+                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Most valuable bag
+                      </div>
+                      {mostValuableBag ? (
+                        <>
+                          <div className="mt-3 text-lg font-semibold">
+                            {mostValuableBag.brand}
+                          </div>
+                          <div className="text-sm opacity-70">
+                            {mostValuableBag.model}
+                          </div>
+                          <div className="mt-3 text-sm font-medium">
+                            {formatCurrency(mostValuableBag.estimated_low)} –{" "}
+                            {formatCurrency(mostValuableBag.estimated_high)}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-3 text-sm opacity-70">
+                          No bags saved yet.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Latest addition
+                      </div>
+                      {latestBag ? (
+                        <>
+                          <div className="mt-3 text-lg font-semibold">
+                            {latestBag.brand}
+                          </div>
+                          <div className="text-sm opacity-70">
+                            {latestBag.model}
+                          </div>
+                          <div className="mt-3 text-sm opacity-60">
+                            Added {formatDate(latestBag.created_at)}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-3 text-sm opacity-70">
+                          No bags saved yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
+
+            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                  My Collection
+                </div>
+                <div className="text-xs opacity-50">Private by default</div>
+              </div>
+
+              {collectionLoading ? (
+                <div className="mt-6 text-sm opacity-70">Loading collection...</div>
+              ) : collection.length === 0 ? (
+                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
+                  No bags saved yet.
+                </div>
+              ) : (
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {collection.map((bag) => (
+                    <div
+                      key={bag.id}
+                      className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4]"
+                    >
+                      {bag.image_url && (
+                        <img
+                          src={bag.image_url}
+                          alt={`${bag.brand} ${bag.model}`}
+                          className="h-64 w-full object-cover"
+                        />
+                      )}
+
+                      <div className="p-6">
+                        <div className="text-lg font-semibold">{bag.brand}</div>
+                        <div className="text-base opacity-70">{bag.model}</div>
+
+                        <div className="mt-4 h-px bg-[#E7DDD3]" />
+
+                        <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                          Estimated value
+                        </div>
+
+                        <div className="mt-2 text-sm font-medium">
+                          {formatCurrency(bag.estimated_low)} –{" "}
+                          {formatCurrency(bag.estimated_high)}
+                        </div>
+
+                        <button
+                          onClick={() => deleteBag(bag.id)}
+                          className="mt-5 w-full rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                        >
+                          Delete bag
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="space-y-8">
+            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                Bag Identification
+              </div>
+
+              <h2 className="mt-4 text-3xl font-semibold leading-tight">
+                Add a bag to your
+                <br />
+                digital closet
+              </h2>
+
+              <p className="mt-4 text-[15px] leading-relaxed opacity-75">
+                Upload a handbag photo and Luxelle will suggest the closest
+                match, estimate its value, and let you save it privately.
+              </p>
+
+              <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-10 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
+                  <div>
+                    <div className="font-medium">Upload a bag photo</div>
+                    <div className="mt-1 text-xs opacity-60">
+                      JPG, PNG, or HEIC
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {preview && (
+                <div className="mt-6 overflow-hidden rounded-[28px] border border-black/5 bg-white">
+                  <img
+                    src={preview}
+                    alt="Bag preview"
+                    className="h-72 w-full object-cover"
+                  />
+                </div>
+              )}
+
+              {loading && (
+                <div className="mt-6 rounded-[24px] bg-[#F3EAE1] p-4 text-sm">
+                  Identifying your bag...
+                </div>
+              )}
+
+              {error && !loading && (
+                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Error
+                  </div>
+                  <div className="mt-3 text-sm text-red-700">{error}</div>
+                </div>
+              )}
+
+              {result && !loading && (
+                <div className="mt-6 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Suggested match
+                  </div>
+
+                  <div className="mt-3 text-2xl font-semibold">
+                    {result.brand}
+                  </div>
+
+                  <div className="text-lg opacity-75">{result.model}</div>
+
+                  <div className="mt-4 h-px bg-[#E7DDD3]" />
+
+                  <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Confidence
+                  </div>
+
+                  <div className="mt-2 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
+                    {formatConfidence(result.confidence)}
+                  </div>
+
+                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Estimated resale value
+                  </div>
+
+                  <div className="mt-2 text-base font-medium">
+                    {formatCurrency(result.estimatedLow)} –{" "}
+                    {formatCurrency(result.estimatedHigh)}
+                  </div>
+
+                  <div className="mt-2 text-xs opacity-60">
+                    Early estimate based on brand and model category.
+                  </div>
+
+                  <button
+                    onClick={saveToCollection}
+                    className="mt-6 w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
+                  >
+                    Save to collection
+                  </button>
+
+                  {saveMessage && (
+                    <div className="mt-3 text-sm opacity-80">{saveMessage}</div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                Notes
+              </div>
+              <div className="mt-4 space-y-3 text-sm opacity-70">
+                <p>• Your collection is private to your account.</p>
+                <p>• Value estimates are directional, not final market prices.</p>
+                <p>• Delete and re-add bags anytime as your closet evolves.</p>
+              </div>
+            </section>
           </div>
         </div>
       </div>
