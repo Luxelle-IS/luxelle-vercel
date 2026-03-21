@@ -150,12 +150,18 @@ export default function Home() {
 
               <div className="text-lg opacity-80">{result.model}</div>
 
+              <div className="mt-4 h-px bg-[#E7DDD3]" />
+
               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-60">
                 Confidence
               </div>
 
-              <div className="mt-1 text-sm capitalize">
-                {result.confidence}
+              <div className="mt-2 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
+                {result.confidence === "high"
+                  ? "High confidence"
+                  : result.confidence === "medium"
+                  ? "Moderate confidence"
+                  : "Low confidence"}
               </div>
             </div>
           )}
