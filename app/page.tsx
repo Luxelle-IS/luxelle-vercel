@@ -293,13 +293,18 @@ export default function Home() {
     setSaveMessage("");
 
     const {
-      data: { user },
+      data,
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      setSaveMessage("You must be logged in to save.");
+    const user = data?.user;
+
+    if (userError || !user || !user.id) {
+      setSaveMessage("Auth error. Please log out and back in.");
       return;
     }
+
+    console.log("USER ID:", user.id);
 
     try {
       const imageUrl = await uploadImageToStorage(selectedFile, user.id);
@@ -320,7 +325,7 @@ export default function Home() {
       ]);
 
       if (error) {
-        setSaveMessage("Could not save bag.");
+        setSaveMessage(error.message || "Could not save bag.");
         return;
       }
 
@@ -549,7 +554,8 @@ export default function Home() {
                         Potential gain / loss
                       </div>
                       <div className="mt-3 text-lg font-semibold">
-                        {formatCurrency(potentialGainLow)} – {formatCurrency(potentialGainHigh)}
+                        {formatCurrency(potentialGainLow)} –{" "}
+                        {formatCurrency(potentialGainHigh)}
                       </div>
                     </div>
 
@@ -736,8 +742,13 @@ export default function Home() {
                               Gain / loss potential
                             </div>
                             <div className="mt-2 text-sm font-medium">
-                              {formatCurrency(bag.estimated_low - bag.purchase_price)} –{" "}
-                              {formatCurrency(bag.estimated_high - bag.purchase_price)}
+                              {formatCurrency(
+                                bag.estimated_low - bag.purchase_price
+                              )}{" "}
+                              –{" "}
+                              {formatCurrency(
+                                bag.estimated_high - bag.purchase_price
+                              )}
                             </div>
                           </>
                         )}
