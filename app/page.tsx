@@ -22,6 +22,9 @@ type SavedBag = {
   image_url: string;
   created_at: string;
   user_id: string | null;
+  purchase_price: number | null;
+  condition: string | null;
+  notes: string | null;
 };
 
 type SortOption = "newest" | "highest" | "brand";
@@ -49,11 +52,58 @@ function formatDate(dateString: string) {
 }
 
 function getConditionLabel(bag: SavedBag) {
+  if (bag.condition) return bag.condition;
+
   const value = bag.estimated_high || 0;
   if (value >= 5000) return "Collector piece";
   if (value >= 2000) return "Excellent";
   if (value >= 1000) return "Very good";
   return "Curated";
+}
+
+function extractStoragePath(publicUrl: string) {
+  const marker = "/storage/v1/object/public/bag-images/";
+  const index = publicUrl.indexOf(marker);
+  if (index === -1) return null;
+  return publicUrl.slice(index + marker.length);
+}
+
+async function compressImage(file: File): Promise<Blob> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+
+  const maxWidth = 1600;
+  const scale = Math.min(1, maxWidth / image.width);
+  const width = Math.round(image.width * scale);
+  const height = Math.round(image.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not prepare image canvas.");
+
+  ctx.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.82);
+  });
+
+  if (!blob) throw new Error("Could not compress image.");
+
+  return blob;
 }
 
 export default function Home() {
@@ -69,6 +119,10 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [brandFilter, setBrandFilter] = useState("all");
 
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [condition, setCondition] = useState("Excellent");
+  const [notes, setNotes] = useState("");
+
   function clearCurrentBagState() {
     setResult(null);
     setPreview("");
@@ -76,6 +130,9 @@ export default function Home() {
     setError("");
     setSaveMessage("");
     setLoading(false);
+    setPurchasePrice("");
+    setCondition("Excellent");
+    setNotes("");
   }
 
   async function loadUser() {
@@ -186,13 +243,14 @@ export default function Home() {
   }
 
   async function uploadImageToStorage(file: File, userId: string) {
-    const fileExt = file.name.split(".").pop() || "jpg";
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const compressedBlob = await compressImage(file);
+    const fileName = `${userId}/${Date.now()}.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from("bag-images")
-      .upload(fileName, file, {
+      .upload(fileName, compressedBlob, {
         cacheControl: "3600",
+        contentType: "image/jpeg",
         upsert: false,
       });
 
@@ -201,7 +259,6 @@ export default function Home() {
     }
 
     const { data } = supabase.storage.from("bag-images").getPublicUrl(fileName);
-
     return data.publicUrl;
   }
 
@@ -231,6 +288,9 @@ export default function Home() {
           estimated_high: result.estimatedHigh,
           image_url: imageUrl,
           user_id: user.id,
+          purchase_price: purchasePrice ? Number(purchasePrice) : null,
+          condition,
+          notes: notes.trim() || null,
         },
       ]);
 
@@ -246,11 +306,17 @@ export default function Home() {
     }
   }
 
-  async function deleteBag(id: number) {
+  async function deleteBag(bag: SavedBag) {
     const confirmed = window.confirm("Delete this bag from your collection?");
     if (!confirmed) return;
 
-    const { error } = await supabase.from("bags").delete().eq("id", id);
+    const storagePath = extractStoragePath(bag.image_url);
+
+    if (storagePath) {
+      await supabase.storage.from("bag-images").remove([storagePath]);
+    }
+
+    const { error } = await supabase.from("bags").delete().eq("id", bag.id);
 
     if (error) {
       alert("Could not delete bag.");
@@ -588,12 +654,34 @@ export default function Home() {
                           {formatCurrency(bag.estimated_high)}
                         </div>
 
-                        <div className="mt-2 text-xs opacity-55">
+                        {bag.purchase_price !== null && (
+                          <>
+                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                              Purchase price
+                            </div>
+                            <div className="mt-2 text-sm font-medium">
+                              {formatCurrency(bag.purchase_price)}
+                            </div>
+                          </>
+                        )}
+
+                        {bag.notes && (
+                          <>
+                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                              Notes
+                            </div>
+                            <div className="mt-2 text-sm opacity-70">
+                              {bag.notes}
+                            </div>
+                          </>
+                        )}
+
+                        <div className="mt-4 text-xs opacity-55">
                           Added {formatDate(bag.created_at)}
                         </div>
 
                         <button
-                          onClick={() => deleteBag(bag.id)}
+                          onClick={() => deleteBag(bag)}
                           className="mt-5 w-full rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
                         >
                           Delete bag
@@ -696,7 +784,44 @@ export default function Home() {
                     {formatCurrency(result.estimatedHigh)}
                   </div>
 
-                  <div className="mt-2 text-xs opacity-60">
+                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Purchase price
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="Optional"
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                  />
+
+                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Condition
+                  </div>
+                  <select
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                  >
+                    <option>Excellent</option>
+                    <option>Very good</option>
+                    <option>Good</option>
+                    <option>Fair</option>
+                    <option>Collector piece</option>
+                  </select>
+
+                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Notes
+                  </div>
+                  <textarea
+                    placeholder="Optional notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                  />
+
+                  <div className="mt-3 text-xs opacity-60">
                     Early estimate based on brand and model category.
                   </div>
 
