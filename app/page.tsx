@@ -123,6 +123,12 @@ export default function Home() {
   const [condition, setCondition] = useState("Excellent");
   const [notes, setNotes] = useState("");
 
+  const [editingBagId, setEditingBagId] = useState<number | null>(null);
+  const [editPurchasePrice, setEditPurchasePrice] = useState("");
+  const [editCondition, setEditCondition] = useState("Excellent");
+  const [editNotes, setEditNotes] = useState("");
+  const [editMessage, setEditMessage] = useState("");
+
   function clearCurrentBagState() {
     setResult(null);
     setPreview("");
@@ -133,6 +139,24 @@ export default function Home() {
     setPurchasePrice("");
     setCondition("Excellent");
     setNotes("");
+  }
+
+  function startEditing(bag: SavedBag) {
+    setEditingBagId(bag.id);
+    setEditPurchasePrice(
+      bag.purchase_price !== null ? String(bag.purchase_price) : ""
+    );
+    setEditCondition(bag.condition || "Excellent");
+    setEditNotes(bag.notes || "");
+    setEditMessage("");
+  }
+
+  function cancelEditing() {
+    setEditingBagId(null);
+    setEditPurchasePrice("");
+    setEditCondition("Excellent");
+    setEditNotes("");
+    setEditMessage("");
   }
 
   async function loadUser() {
@@ -180,6 +204,7 @@ export default function Home() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
       clearCurrentBagState();
+      cancelEditing();
       loadUser();
       loadCollection();
     });
@@ -306,6 +331,28 @@ export default function Home() {
     }
   }
 
+  async function saveBagEdits(bagId: number) {
+    setEditMessage("");
+
+    const { error } = await supabase
+      .from("bags")
+      .update({
+        purchase_price: editPurchasePrice ? Number(editPurchasePrice) : null,
+        condition: editCondition,
+        notes: editNotes.trim() || null,
+      })
+      .eq("id", bagId);
+
+    if (error) {
+      setEditMessage("Could not save changes.");
+      return;
+    }
+
+    setEditMessage("Saved.");
+    await loadCollection();
+    setEditingBagId(null);
+  }
+
   async function deleteBag(bag: SavedBag) {
     const confirmed = window.confirm("Delete this bag from your collection?");
     if (!confirmed) return;
@@ -331,6 +378,7 @@ export default function Home() {
     setUserEmail(null);
     setCollection([]);
     clearCurrentBagState();
+    cancelEditing();
   }
 
   const totalLow = collection.reduce(
@@ -342,6 +390,14 @@ export default function Home() {
     (sum, bag) => sum + (bag.estimated_high || 0),
     0
   );
+
+  const totalPurchasePrice = collection.reduce(
+    (sum, bag) => sum + (bag.purchase_price || 0),
+    0
+  );
+
+  const potentialGainLow = totalLow - totalPurchasePrice;
+  const potentialGainHigh = totalHigh - totalPurchasePrice;
 
   const averageValue =
     collection.length > 0
@@ -449,7 +505,7 @@ export default function Home() {
                 <div className="mt-6 text-sm opacity-70">Loading overview...</div>
               ) : (
                 <>
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Total items
@@ -470,6 +526,15 @@ export default function Home() {
 
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Total purchase price
+                      </div>
+                      <div className="mt-3 text-2xl font-semibold">
+                        {formatCurrency(totalPurchasePrice)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Average bag value
                       </div>
                       <div className="mt-3 text-2xl font-semibold">
@@ -478,7 +543,16 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Potential gain / loss
+                      </div>
+                      <div className="mt-3 text-lg font-semibold">
+                        {formatCurrency(potentialGainLow)} – {formatCurrency(potentialGainHigh)}
+                      </div>
+                    </div>
+
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Most valuable bag
@@ -490,10 +564,6 @@ export default function Home() {
                           </div>
                           <div className="text-sm opacity-70">
                             {mostValuableBag.model}
-                          </div>
-                          <div className="mt-3 text-sm font-medium">
-                            {formatCurrency(mostValuableBag.estimated_low)} –{" "}
-                            {formatCurrency(mostValuableBag.estimated_high)}
                           </div>
                         </>
                       ) : (
@@ -648,7 +718,6 @@ export default function Home() {
                         <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
                           Estimated value
                         </div>
-
                         <div className="mt-2 text-sm font-medium">
                           {formatCurrency(bag.estimated_low)} –{" "}
                           {formatCurrency(bag.estimated_high)}
@@ -661,6 +730,14 @@ export default function Home() {
                             </div>
                             <div className="mt-2 text-sm font-medium">
                               {formatCurrency(bag.purchase_price)}
+                            </div>
+
+                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                              Gain / loss potential
+                            </div>
+                            <div className="mt-2 text-sm font-medium">
+                              {formatCurrency(bag.estimated_low - bag.purchase_price)} –{" "}
+                              {formatCurrency(bag.estimated_high - bag.purchase_price)}
                             </div>
                           </>
                         )}
@@ -680,12 +757,71 @@ export default function Home() {
                           Added {formatDate(bag.created_at)}
                         </div>
 
-                        <button
-                          onClick={() => deleteBag(bag)}
-                          className="mt-5 w-full rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                        >
-                          Delete bag
-                        </button>
+                        {editingBagId === bag.id ? (
+                          <div className="mt-5 space-y-3 rounded-2xl border border-[#E7DDD3] bg-white p-4">
+                            <input
+                              type="number"
+                              placeholder="Purchase price"
+                              value={editPurchasePrice}
+                              onChange={(e) => setEditPurchasePrice(e.target.value)}
+                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                            />
+
+                            <select
+                              value={editCondition}
+                              onChange={(e) => setEditCondition(e.target.value)}
+                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                            >
+                              <option>Excellent</option>
+                              <option>Very good</option>
+                              <option>Good</option>
+                              <option>Fair</option>
+                              <option>Collector piece</option>
+                            </select>
+
+                            <textarea
+                              rows={3}
+                              placeholder="Notes"
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                            />
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                onClick={() => saveBagEdits(bag.id)}
+                                className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white"
+                              >
+                                Save changes
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                className="rounded-2xl border border-[#D8C7B8] bg-[#FCF8F4] px-4 py-3 text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+
+                            {editMessage && (
+                              <div className="text-sm opacity-70">{editMessage}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-5 grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => startEditing(bag)}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                            >
+                              Edit details
+                            </button>
+                            <button
+                              onClick={() => deleteBag(bag)}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                            >
+                              Delete bag
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
