@@ -1,33 +1,142 @@
+"use client";
+
+import { useState } from "react";
+
 export default function Home() {
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState("");
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setResult("");
+
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      try {
+        const base64 = reader.result as string;
+        setPreview(base64);
+
+        const res = await fetch("/api/identify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        const text = await res.text();
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          setResult("Server returned HTML instead of JSON.");
+          setLoading(false);
+          return;
+        }
+
+        if (!res.ok) {
+          setResult(data.error || "Server returned an error.");
+          setLoading(false);
+          return;
+        }
+
+        setResult(data.result || "No result found.");
+      } catch (error: any) {
+        setResult(error?.message || "Something went wrong.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   return (
-    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-3xl bg-white/70 shadow-sm p-8 border border-black/5">
-        <div className="text-xs tracking-[0.25em] uppercase opacity-70">
-          Luxelle
-        </div>
+    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-6 py-10">
+      <div className="mx-auto w-full max-w-md">
+        <div className="rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
+          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
+            Luxelle
+          </div>
 
-        <h1 className="mt-4 text-3xl font-semibold leading-tight">
-          Your luxury closet,
-          <br />
-          beautifully organized.
-        </h1>
+          <h1 className="mt-4 text-3xl font-semibold leading-tight">
+            Your luxury closet,
+            <br />
+            beautifully organized.
+          </h1>
 
-        <p className="mt-4 text-[15px] leading-relaxed opacity-80">
-          Add your handbags with a photo, get a suggested match, and see an
-          estimated value range for your collection.
-        </p>
+          <p className="mt-4 text-[15px] leading-relaxed opacity-80">
+            Add your handbags with a photo, get a suggested match, and begin
+            building your digital luxury collection.
+          </p>
 
-        <a
-          href="https://tally.so/r/ODPO7Y"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 block w-full text-center rounded-2xl bg-[#2C2A29] text-white px-4 py-3"
-        >
-          Join the waitlist
-        </a>
+          <a
+            href="https://tally.so/r/ODPO7Y"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 block w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-white transition hover:opacity-90"
+          >
+            Join the waitlist
+          </a>
 
-        <div className="mt-6 text-xs opacity-60">
-          Private by default. No public profiles.
+          <div className="mt-8 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+            <div className="text-sm font-medium">Try bag identification</div>
+            <p className="mt-1 text-sm opacity-70">
+              Upload a photo and Luxelle will suggest the closest match.
+            </p>
+
+            <label className="mt-4 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#D8C7B8] bg-white px-4 py-8 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
+              <div>
+                <div className="font-medium">Upload a bag photo</div>
+                <div className="mt-1 text-xs opacity-60">
+                  JPG, PNG, or HEIC
+                </div>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {preview && (
+            <div className="mt-6 overflow-hidden rounded-3xl border border-black/5 bg-white">
+              <img
+                src={preview}
+                alt="Bag preview"
+                className="h-72 w-full object-cover"
+              />
+            </div>
+          )}
+
+          {loading && (
+            <div className="mt-6 rounded-3xl bg-[#F3EAE1] p-4 text-sm">
+              Identifying your bag...
+            </div>
+          )}
+
+          {result && !loading && (
+            <div className="mt-6 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
+                Suggested match
+              </div>
+              <div className="mt-3 text-lg font-semibold leading-snug">
+                {result}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 text-xs opacity-60">
+            Private by default. No public profiles.
+          </div>
         </div>
       </div>
     </main>
