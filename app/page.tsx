@@ -61,6 +61,7 @@ export default function Home() {
   const [result, setResult] = useState<IdentifyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [collection, setCollection] = useState<SavedBag[]>([]);
@@ -71,6 +72,7 @@ export default function Home() {
   function clearCurrentBagState() {
     setResult(null);
     setPreview("");
+    setSelectedFile(null);
     setError("");
     setSaveMessage("");
     setLoading(false);
@@ -134,6 +136,7 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSelectedFile(file);
     setLoading(true);
     setResult(null);
     setError("");
@@ -182,8 +185,28 @@ export default function Home() {
     reader.readAsDataURL(file);
   }
 
+  async function uploadImageToStorage(file: File, userId: string) {
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("bag-images")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
+
+    const { data } = supabase.storage.from("bag-images").getPublicUrl(fileName);
+
+    return data.publicUrl;
+  }
+
   async function saveToCollection() {
-    if (!result || !preview) return;
+    if (!result || !selectedFile) return;
 
     setSaveMessage("");
 
@@ -196,25 +219,31 @@ export default function Home() {
       return;
     }
 
-    const { error } = await supabase.from("bags").insert([
-      {
-        brand: result.brand,
-        model: result.model,
-        confidence: result.confidence,
-        estimated_low: result.estimatedLow,
-        estimated_high: result.estimatedHigh,
-        image_url: preview,
-        user_id: user.id,
-      },
-    ]);
+    try {
+      const imageUrl = await uploadImageToStorage(selectedFile, user.id);
 
-    if (error) {
-      setSaveMessage("Could not save bag.");
-      return;
+      const { error } = await supabase.from("bags").insert([
+        {
+          brand: result.brand,
+          model: result.model,
+          confidence: result.confidence,
+          estimated_low: result.estimatedLow,
+          estimated_high: result.estimatedHigh,
+          image_url: imageUrl,
+          user_id: user.id,
+        },
+      ]);
+
+      if (error) {
+        setSaveMessage("Could not save bag.");
+        return;
+      }
+
+      setSaveMessage("Saved to your collection.");
+      loadCollection();
+    } catch (err: any) {
+      setSaveMessage(err?.message || "Could not upload image.");
     }
-
-    setSaveMessage("Saved to your collection.");
-    loadCollection();
   }
 
   async function deleteBag(id: number) {
