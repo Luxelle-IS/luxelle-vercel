@@ -68,6 +68,27 @@ function extractStoragePath(publicUrl: string) {
   return publicUrl.slice(index + marker.length);
 }
 
+function getMidValue(bag: SavedBag) {
+  return ((bag.estimated_low || 0) + (bag.estimated_high || 0)) / 2;
+}
+
+function getGainLow(bag: SavedBag) {
+  if (bag.purchase_price == null) return null;
+  return (bag.estimated_low || 0) - bag.purchase_price;
+}
+
+function getGainHigh(bag: SavedBag) {
+  if (bag.purchase_price == null) return null;
+  return (bag.estimated_high || 0) - bag.purchase_price;
+}
+
+function getPerformanceTone(value: number | null) {
+  if (value == null) return "text-[#2C2A29]";
+  if (value > 0) return "text-emerald-700";
+  if (value < 0) return "text-amber-700";
+  return "text-[#2C2A29]";
+}
+
 async function compressImage(file: File): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -104,6 +125,111 @@ async function compressImage(file: File): Promise<Blob> {
   if (!blob) throw new Error("Could not compress image.");
 
   return blob;
+}
+
+function LoadingCard() {
+  return (
+    <div className="animate-pulse rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+      <div className="h-48 rounded-[20px] bg-[#EFE6DC]" />
+      <div className="mt-5 h-5 w-1/2 rounded bg-[#EFE6DC]" />
+      <div className="mt-3 h-4 w-1/3 rounded bg-[#EFE6DC]" />
+      <div className="mt-6 h-4 w-1/4 rounded bg-[#EFE6DC]" />
+      <div className="mt-3 h-4 w-2/3 rounded bg-[#EFE6DC]" />
+      <div className="mt-5 h-10 rounded-2xl bg-[#EFE6DC]" />
+    </div>
+  );
+}
+
+function PortfolioChart({ collection }: { collection: SavedBag[] }) {
+  if (collection.length === 0) {
+    return (
+      <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
+        Start building your private luxury archive to see your portfolio trend.
+      </div>
+    );
+  }
+
+  const sorted = [...collection].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  let runningTotal = 0;
+  const points = sorted.map((bag) => {
+    runningTotal += getMidValue(bag);
+    return {
+      label: formatDate(bag.created_at),
+      value: runningTotal,
+    };
+  });
+
+  const width = 640;
+  const height = 220;
+  const padding = 18;
+
+  const min = Math.min(...points.map((p) => p.value), 0);
+  const max = Math.max(...points.map((p) => p.value), 1);
+  const range = max - min || 1;
+
+  const path = points
+    .map((point, index) => {
+      const x =
+        padding +
+        (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
+      const y =
+        height -
+        padding -
+        ((point.value - min) / range) * (height - padding * 2);
+
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+
+  const areaPath = `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-4">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+        <defs>
+          <linearGradient id="luxelleArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#D9C8B8" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#D9C8B8" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d={areaPath}
+          fill="url(#luxelleArea)"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke="#2C2A29"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {points.map((point, index) => {
+          const x =
+            padding +
+            (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
+          const y =
+            height -
+            padding -
+            ((point.value - min) / range) * (height - padding * 2);
+
+          return (
+            <circle key={index} cx={x} cy={y} r="4" fill="#2C2A29" />
+          );
+        })}
+      </svg>
+
+      <div className="mt-3 flex items-center justify-between text-xs opacity-55">
+        <span>{points[0]?.label}</span>
+        <span>{points[points.length - 1]?.label}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -448,7 +574,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -499,19 +625,31 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-8">
             <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Collection Overview
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                  Collection Overview
+                </div>
+                <div className="text-xs opacity-50">
+                  A private archive of your luxury pieces
+                </div>
               </div>
 
               {collectionLoading ? (
-                <div className="mt-6 text-sm opacity-70">Loading overview...</div>
+                <>
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <LoadingCard />
+                    <LoadingCard />
+                    <LoadingCard />
+                    <LoadingCard />
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Total items
                       </div>
@@ -520,7 +658,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Portfolio value
                       </div>
@@ -529,7 +667,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Total purchase price
                       </div>
@@ -538,7 +676,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Average bag value
                       </div>
@@ -602,6 +740,8 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+
+                  <PortfolioChart collection={collection} />
                 </>
               )}
             </section>
@@ -660,7 +800,7 @@ export default function Home() {
                   <select
                     value={brandFilter}
                     onChange={(e) => setBrandFilter(e.target.value)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
                   >
                     <option value="all">All brands</option>
                     {brands.map((brand) => (
@@ -673,7 +813,7 @@ export default function Home() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
                   >
                     <option value="newest">Newest</option>
                     <option value="highest">Highest value</option>
@@ -683,159 +823,178 @@ export default function Home() {
               </div>
 
               {collectionLoading ? (
-                <div className="mt-6 text-sm opacity-70">Loading collection...</div>
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <LoadingCard />
+                  <LoadingCard />
+                </div>
               ) : displayedCollection.length === 0 ? (
-                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
-                  No bags match this view yet.
+                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
+                  <div className="text-lg font-semibold">
+                    Start building your private luxury archive
+                  </div>
+                  <div className="mt-2 text-sm opacity-70">
+                    Upload your first bag to begin tracking value, purchase
+                    history, and collection performance.
+                  </div>
                 </div>
               ) : (
                 <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {displayedCollection.map((bag) => (
-                    <div
-                      key={bag.id}
-                      className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4]"
-                    >
-                      {bag.image_url && (
-                        <img
-                          src={bag.image_url}
-                          alt={`${bag.brand} ${bag.model}`}
-                          className="h-64 w-full object-cover"
-                        />
-                      )}
+                  {displayedCollection.map((bag) => {
+                    const gainLow = getGainLow(bag);
+                    const gainHigh = getGainHigh(bag);
 
-                      <div className="p-6">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-lg font-semibold">
-                              {bag.brand}
+                    return (
+                      <div
+                        key={bag.id}
+                        className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] transition duration-200 hover:-translate-y-1 hover:shadow-md"
+                      >
+                        {bag.image_url && (
+                          <img
+                            src={bag.image_url}
+                            alt={`${bag.brand} ${bag.model}`}
+                            className="h-64 w-full object-cover"
+                          />
+                        )}
+
+                        <div className="p-6">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold">
+                                {bag.brand}
+                              </div>
+                              <div className="text-base opacity-70">
+                                {bag.model}
+                              </div>
                             </div>
-                            <div className="text-base opacity-70">
-                              {bag.model}
+
+                            <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
+                              {getConditionLabel(bag)}
                             </div>
                           </div>
 
-                          <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
-                            {getConditionLabel(bag)}
+                          <div className="mt-4 h-px bg-[#E7DDD3]" />
+
+                          <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                            Estimated value
                           </div>
-                        </div>
+                          <div className="mt-2 text-sm font-medium">
+                            {formatCurrency(bag.estimated_low)} –{" "}
+                            {formatCurrency(bag.estimated_high)}
+                          </div>
 
-                        <div className="mt-4 h-px bg-[#E7DDD3]" />
+                          {bag.purchase_price !== null && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Purchase price
+                              </div>
+                              <div className="mt-2 text-sm font-medium">
+                                {formatCurrency(bag.purchase_price)}
+                              </div>
 
-                        <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                          Estimated value
-                        </div>
-                        <div className="mt-2 text-sm font-medium">
-                          {formatCurrency(bag.estimated_low)} –{" "}
-                          {formatCurrency(bag.estimated_high)}
-                        </div>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Gain / loss potential
+                              </div>
+                              <div
+                                className={`mt-2 text-sm font-medium ${getPerformanceTone(
+                                  gainHigh
+                                )}`}
+                              >
+                                {formatCurrency(gainLow ?? 0)} –{" "}
+                                {formatCurrency(gainHigh ?? 0)}
+                              </div>
+                            </>
+                          )}
 
-                        {bag.purchase_price !== null && (
-                          <>
-                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                              Purchase price
-                            </div>
-                            <div className="mt-2 text-sm font-medium">
-                              {formatCurrency(bag.purchase_price)}
-                            </div>
+                          {bag.notes && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Notes
+                              </div>
+                              <div className="mt-2 text-sm opacity-70">
+                                {bag.notes}
+                              </div>
+                            </>
+                          )}
 
-                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                              Gain / loss potential
-                            </div>
-                            <div className="mt-2 text-sm font-medium">
-                              {formatCurrency(
-                                bag.estimated_low - bag.purchase_price
-                              )}{" "}
-                              –{" "}
-                              {formatCurrency(
-                                bag.estimated_high - bag.purchase_price
+                          <div className="mt-4 text-xs opacity-55">
+                            Added {formatDate(bag.created_at)}
+                          </div>
+
+                          {editingBagId === bag.id ? (
+                            <div className="mt-5 space-y-3 rounded-2xl border border-[#E7DDD3] bg-white p-4">
+                              <input
+                                type="number"
+                                placeholder="Purchase price"
+                                value={editPurchasePrice}
+                                onChange={(e) =>
+                                  setEditPurchasePrice(e.target.value)
+                                }
+                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                              />
+
+                              <select
+                                value={editCondition}
+                                onChange={(e) =>
+                                  setEditCondition(e.target.value)
+                                }
+                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                              >
+                                <option>Excellent</option>
+                                <option>Very good</option>
+                                <option>Good</option>
+                                <option>Fair</option>
+                                <option>Collector piece</option>
+                              </select>
+
+                              <textarea
+                                rows={3}
+                                placeholder="Notes"
+                                value={editNotes}
+                                onChange={(e) => setEditNotes(e.target.value)}
+                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
+                              />
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <button
+                                  onClick={() => saveBagEdits(bag.id)}
+                                  className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white"
+                                >
+                                  Save changes
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="rounded-2xl border border-[#D8C7B8] bg-[#FCF8F4] px-4 py-3 text-sm"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+
+                              {editMessage && (
+                                <div className="text-sm opacity-70">
+                                  {editMessage}
+                                </div>
                               )}
                             </div>
-                          </>
-                        )}
-
-                        {bag.notes && (
-                          <>
-                            <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                              Notes
+                          ) : (
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                              <button
+                                onClick={() => startEditing(bag)}
+                                className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                              >
+                                Edit details
+                              </button>
+                              <button
+                                onClick={() => deleteBag(bag)}
+                                className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                              >
+                                Delete bag
+                              </button>
                             </div>
-                            <div className="mt-2 text-sm opacity-70">
-                              {bag.notes}
-                            </div>
-                          </>
-                        )}
-
-                        <div className="mt-4 text-xs opacity-55">
-                          Added {formatDate(bag.created_at)}
+                          )}
                         </div>
-
-                        {editingBagId === bag.id ? (
-                          <div className="mt-5 space-y-3 rounded-2xl border border-[#E7DDD3] bg-white p-4">
-                            <input
-                              type="number"
-                              placeholder="Purchase price"
-                              value={editPurchasePrice}
-                              onChange={(e) => setEditPurchasePrice(e.target.value)}
-                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                            />
-
-                            <select
-                              value={editCondition}
-                              onChange={(e) => setEditCondition(e.target.value)}
-                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                            >
-                              <option>Excellent</option>
-                              <option>Very good</option>
-                              <option>Good</option>
-                              <option>Fair</option>
-                              <option>Collector piece</option>
-                            </select>
-
-                            <textarea
-                              rows={3}
-                              placeholder="Notes"
-                              value={editNotes}
-                              onChange={(e) => setEditNotes(e.target.value)}
-                              className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                            />
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <button
-                                onClick={() => saveBagEdits(bag.id)}
-                                className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white"
-                              >
-                                Save changes
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="rounded-2xl border border-[#D8C7B8] bg-[#FCF8F4] px-4 py-3 text-sm"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-
-                            {editMessage && (
-                              <div className="text-sm opacity-70">{editMessage}</div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-5 grid grid-cols-2 gap-3">
-                            <button
-                              onClick={() => startEditing(bag)}
-                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                            >
-                              Edit details
-                            </button>
-                            <button
-                              onClick={() => deleteBag(bag)}
-                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                            >
-                              Delete bag
-                            </button>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
