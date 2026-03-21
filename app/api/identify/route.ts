@@ -1,5 +1,92 @@
 import OpenAI from "openai";
 
+function getEstimatedValue(brand: string, model: string) {
+  const b = brand.toLowerCase();
+  const m = model.toLowerCase();
+
+  const rules = [
+    {
+      brand: "louis vuitton",
+      match: ["pochette métis", "pochette metis"],
+      low: 1800,
+      high: 2600,
+    },
+    {
+      brand: "louis vuitton",
+      match: ["neverfull"],
+      low: 900,
+      high: 1800,
+    },
+    {
+      brand: "louis vuitton",
+      match: ["speedy"],
+      low: 700,
+      high: 1600,
+    },
+    {
+      brand: "chanel",
+      match: ["classic flap"],
+      low: 6000,
+      high: 11000,
+    },
+    {
+      brand: "chanel",
+      match: ["boy bag"],
+      low: 2500,
+      high: 5000,
+    },
+    {
+      brand: "hermès",
+      match: ["birkin", "birkin 25", "birkin 30"],
+      low: 9000,
+      high: 30000,
+    },
+    {
+      brand: "hermes",
+      match: ["birkin", "birkin 25", "birkin 30"],
+      low: 9000,
+      high: 30000,
+    },
+    {
+      brand: "hermès",
+      match: ["kelly", "kelly 25", "kelly 28"],
+      low: 8000,
+      high: 28000,
+    },
+    {
+      brand: "hermes",
+      match: ["kelly", "kelly 25", "kelly 28"],
+      low: 8000,
+      high: 28000,
+    },
+    {
+      brand: "jacquemus",
+      match: ["le chiquito"],
+      low: 250,
+      high: 650,
+    },
+    {
+      brand: "jacquemus",
+      match: ["le bambino"],
+      low: 300,
+      high: 700,
+    },
+  ];
+
+  for (const rule of rules) {
+    if (b.includes(rule.brand) && rule.match.some((term) => m.includes(term))) {
+      return { low: rule.low, high: rule.high };
+    }
+  }
+
+  if (b.includes("louis vuitton")) return { low: 700, high: 2000 };
+  if (b.includes("chanel")) return { low: 2500, high: 7000 };
+  if (b.includes("hermès") || b.includes("hermes")) return { low: 5000, high: 20000 };
+  if (b.includes("jacquemus")) return { low: 200, high: 700 };
+
+  return { low: 500, high: 1500 };
+}
+
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -58,7 +145,13 @@ export async function POST(req: Request) {
       };
     }
 
-    return Response.json(parsed);
+    const estimate = getEstimatedValue(parsed.brand, parsed.model);
+
+    return Response.json({
+      ...parsed,
+      estimatedLow: estimate.low,
+      estimatedHigh: estimate.high,
+    });
   } catch (error: any) {
     console.error("IDENTIFY API ERROR:", error);
 

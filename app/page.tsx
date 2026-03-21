@@ -6,7 +6,17 @@ type IdentifyResult = {
   brand: string;
   model: string;
   confidence: string;
+  estimatedLow: number;
+  estimatedHigh: number;
 };
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export default function Home() {
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -162,6 +172,18 @@ export default function Home() {
                   : result.confidence === "medium"
                   ? "Moderate confidence"
                   : "Low confidence"}
+              </div>
+
+              <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-60">
+                Estimated resale value
+              </div>
+
+              <div className="mt-2 text-base font-medium">
+                {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
+              </div>
+
+              <div className="mt-2 text-xs opacity-60">
+                Early estimate based on brand and model category.
               </div>
             </div>
           )}
