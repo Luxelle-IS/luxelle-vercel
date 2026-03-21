@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import AuthCard from "../components/AuthCard";
 
 type IdentifyResult = {
   brand: string;
@@ -8,6 +10,17 @@ type IdentifyResult = {
   confidence: string;
   estimatedLow: number;
   estimatedHigh: number;
+};
+
+type SavedBag = {
+  id: number;
+  brand: string;
+  model: string;
+  confidence: string;
+  estimated_low: number;
+  estimated_high: number;
+  image_url: string;
+  created_at: string;
 };
 
 function formatCurrency(value: number) {
@@ -19,10 +32,52 @@ function formatCurrency(value: number) {
 }
 
 export default function Home() {
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [collection, setCollection] = useState<SavedBag[]>([]);
+  const [collectionLoading, setCollectionLoading] = useState(true);
+
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    setUserEmail(user?.email ?? null);
+  }
+
+  async function loadCollection() {
+    setCollectionLoading(true);
+
+    const { data, error } = await supabase
+      .from("bags")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setCollection(data);
+    }
+
+    setCollectionLoading(false);
+  }
+
+  useEffect(() => {
+    loadUser();
+    loadCollection();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -31,6 +86,7 @@ export default function Home() {
     setLoading(true);
     setResult(null);
     setError("");
+    setSaveMessage("");
 
     const reader = new FileReader();
 
@@ -75,9 +131,70 @@ export default function Home() {
     reader.readAsDataURL(file);
   }
 
+  async function saveToCollection() {
+    if (!result || !preview) return;
+
+    setSaveMessage("");
+
+    const { error } = await supabase.from("bags").insert([
+      {
+        brand: result.brand,
+        model: result.model,
+        confidence: result.confidence,
+        estimated_low: result.estimatedLow,
+        estimated_high: result.estimatedHigh,
+        image_url: preview,
+      },
+    ]);
+
+    if (error) {
+      setSaveMessage("Could not save bag.");
+      return;
+    }
+
+    setSaveMessage("Saved to collection.");
+    loadCollection();
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setUserEmail(null);
+  }
+
+  const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
+  const totalHigh = collection.reduce((sum, bag) => sum + (bag.estimated_high || 0), 0);
+
   return (
     <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-6 py-10">
       <div className="mx-auto w-full max-w-md">
+        <div className="mb-8 rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
+                Luxelle
+              </div>
+              <div className="mt-2 text-sm opacity-70">
+                {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
+              </div>
+            </div>
+
+            {userEmail && (
+              <button
+                onClick={signOut}
+                className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-2 text-sm"
+              >
+                Log out
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!userEmail && (
+          <div className="mb-8">
+            <AuthCard onAuthSuccess={loadUser} />
+          </div>
+        )}
+
         <div className="rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
           <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
             Luxelle
@@ -185,6 +302,90 @@ export default function Home() {
               <div className="mt-2 text-xs opacity-60">
                 Early estimate based on brand and model category.
               </div>
+
+              <button
+                onClick={saveToCollection}
+                className="mt-6 w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
+              >
+                Save to collection
+              </button>
+
+              {saveMessage && (
+                <div className="mt-3 text-sm opacity-80">{saveMessage}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
+          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
+            Collection Overview
+          </div>
+
+          {collectionLoading ? (
+            <div className="mt-4 text-sm opacity-70">Loading overview...</div>
+          ) : (
+            <div className="mt-6 grid grid-cols-1 gap-4">
+              <div className="rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
+                  Total items
+                </div>
+                <div className="mt-2 text-2xl font-semibold">
+                  {collection.length}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
+                  Estimated total value
+                </div>
+                <div className="mt-2 text-xl font-semibold">
+                  {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 rounded-[28px] border border-black/5 bg-white/80 p-8 shadow-sm">
+          <div className="text-[11px] tracking-[0.28em] uppercase opacity-70">
+            My Collection
+          </div>
+
+          {collectionLoading ? (
+            <div className="mt-4 text-sm opacity-70">Loading collection...</div>
+          ) : collection.length === 0 ? (
+            <div className="mt-4 text-sm opacity-70">
+              No bags saved yet.
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              {collection.map((bag) => (
+                <div
+                  key={bag.id}
+                  className="overflow-hidden rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4]"
+                >
+                  {bag.image_url && (
+                    <img
+                      src={bag.image_url}
+                      alt={`${bag.brand} ${bag.model}`}
+                      className="h-56 w-full object-cover"
+                    />
+                  )}
+
+                  <div className="p-5">
+                    <div className="text-lg font-semibold">{bag.brand}</div>
+                    <div className="text-base opacity-80">{bag.model}</div>
+
+                    <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-60">
+                      Estimated resale value
+                    </div>
+                    <div className="mt-2 text-sm font-medium">
+                      {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
