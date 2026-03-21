@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       return Response.json(
-        { error: "OPENAI_API_KEY is missing in .env.local" },
+        { error: "OPENAI_API_KEY is missing in Vercel or .env.local" },
         { status: 500 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
           content: [
             {
               type: "input_text",
-              text: "Identify this handbag as specifically as possible. Return only the brand and model. If uncertain, say the most likely brand and model.",
+              text: 'Identify this handbag. Respond ONLY in valid JSON with this exact shape: {"brand":"...","model":"...","confidence":"low|medium|high"}. No markdown. No extra text.',
             },
             {
               type: "input_image",
@@ -40,9 +40,25 @@ export async function POST(req: Request) {
       ],
     });
 
-    return Response.json({
-      result: response.output_text || "No result found.",
-    });
+    const text = response.output_text || "";
+
+    let parsed: {
+      brand: string;
+      model: string;
+      confidence: string;
+    };
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {
+        brand: "Unknown",
+        model: text || "No result found.",
+        confidence: "medium",
+      };
+    }
+
+    return Response.json(parsed);
   } catch (error: any) {
     console.error("IDENTIFY API ERROR:", error);
 

@@ -2,17 +2,25 @@
 
 import { useState } from "react";
 
+type IdentifyResult = {
+  brand: string;
+  model: string;
+  confidence: string;
+};
+
 export default function Home() {
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<IdentifyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
+  const [error, setError] = useState("");
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
-    setResult("");
+    setResult(null);
+    setError("");
 
     const reader = new FileReader();
 
@@ -31,24 +39,24 @@ export default function Home() {
 
         const text = await res.text();
 
-        let data;
+        let data: any;
         try {
           data = JSON.parse(text);
         } catch {
-          setResult("Server returned HTML instead of JSON.");
+          setError("Server returned HTML instead of JSON.");
           setLoading(false);
           return;
         }
 
         if (!res.ok) {
-          setResult(data.error || "Server returned an error.");
+          setError(data.error || "Server returned an error.");
           setLoading(false);
           return;
         }
 
-        setResult(data.result || "No result found.");
-      } catch (error: any) {
-        setResult(error?.message || "Something went wrong.");
+        setResult(data);
+      } catch (err: any) {
+        setError(err?.message || "Something went wrong.");
       } finally {
         setLoading(false);
       }
@@ -123,13 +131,31 @@ export default function Home() {
             </div>
           )}
 
-          {result && !loading && (
+          {error && !loading && (
             <div className="mt-6 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
+                Error
+              </div>
+              <div className="mt-3 text-sm text-red-700">{error}</div>
+            </div>
+          )}
+
+          {result && !loading && (
+            <div className="mt-6 rounded-3xl border border-[#E7DDD3] bg-[#FCF8F4] p-6">
               <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">
                 Suggested match
               </div>
-              <div className="mt-3 text-lg font-semibold leading-snug">
-                {result}
+
+              <div className="mt-3 text-xl font-semibold">{result.brand}</div>
+
+              <div className="text-lg opacity-80">{result.model}</div>
+
+              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-60">
+                Confidence
+              </div>
+
+              <div className="mt-1 text-sm capitalize">
+                {result.confidence}
               </div>
             </div>
           )}
