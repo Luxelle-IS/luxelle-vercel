@@ -24,6 +24,8 @@ type SavedBag = {
   user_id: string | null;
 };
 
+type SortOption = "newest" | "highest" | "brand";
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -46,6 +48,14 @@ function formatDate(dateString: string) {
   }).format(new Date(dateString));
 }
 
+function getConditionLabel(bag: SavedBag) {
+  const value = bag.estimated_high || 0;
+  if (value >= 5000) return "Collector piece";
+  if (value >= 2000) return "Excellent";
+  if (value >= 1000) return "Very good";
+  return "Curated";
+}
+
 export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -55,6 +65,8 @@ export default function Home() {
   const [saveMessage, setSaveMessage] = useState("");
   const [collection, setCollection] = useState<SavedBag[]>([]);
   const [collectionLoading, setCollectionLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [brandFilter, setBrandFilter] = useState("all");
 
   function clearCurrentBagState() {
     setResult(null);
@@ -237,7 +249,9 @@ export default function Home() {
   );
 
   const averageValue =
-    collection.length > 0 ? Math.round((totalLow + totalHigh) / 2 / collection.length) : 0;
+    collection.length > 0
+      ? Math.round((totalLow + totalHigh) / 2 / collection.length)
+      : 0;
 
   const mostValuableBag = useMemo(() => {
     if (collection.length === 0) return null;
@@ -248,9 +262,37 @@ export default function Home() {
 
   const latestBag = collection.length > 0 ? collection[0] : null;
 
+  const brands = useMemo(() => {
+    const uniqueBrands = Array.from(
+      new Set(collection.map((bag) => bag.brand).filter(Boolean))
+    );
+    return uniqueBrands.sort((a, b) => a.localeCompare(b));
+  }, [collection]);
+
+  const displayedCollection = useMemo(() => {
+    let items = [...collection];
+
+    if (brandFilter !== "all") {
+      items = items.filter((bag) => bag.brand === brandFilter);
+    }
+
+    if (sortBy === "highest") {
+      items.sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0));
+    } else if (sortBy === "brand") {
+      items.sort((a, b) => a.brand.localeCompare(b.brand));
+    } else {
+      items.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    return items;
+  }, [collection, brandFilter, sortBy]);
+
   return (
     <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10">
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -301,7 +343,7 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-8">
             <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
@@ -393,23 +435,91 @@ export default function Home() {
               )}
             </section>
 
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                  My Collection
+            {mostValuableBag && (
+              <section className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr]">
+                  <div className="p-8">
+                    <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                      Featured piece
+                    </div>
+                    <div className="mt-4 text-3xl font-semibold">
+                      {mostValuableBag.brand}
+                    </div>
+                    <div className="mt-1 text-lg opacity-75">
+                      {mostValuableBag.model}
+                    </div>
+                    <div className="mt-6 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
+                      {getConditionLabel(mostValuableBag)}
+                    </div>
+                    <div className="mt-6 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                      Estimated value
+                    </div>
+                    <div className="mt-2 text-xl font-semibold">
+                      {formatCurrency(mostValuableBag.estimated_low)} –{" "}
+                      {formatCurrency(mostValuableBag.estimated_high)}
+                    </div>
+                    <div className="mt-3 text-sm opacity-60">
+                      Added {formatDate(mostValuableBag.created_at)}
+                    </div>
+                  </div>
+
+                  <div className="min-h-[320px]">
+                    <img
+                      src={mostValuableBag.image_url}
+                      alt={`${mostValuableBag.brand} ${mostValuableBag.model}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                 </div>
-                <div className="text-xs opacity-50">Private by default</div>
+              </section>
+            )}
+
+            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                    My Collection
+                  </div>
+                  <div className="mt-2 text-sm opacity-60">
+                    Private by default
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <select
+                    value={brandFilter}
+                    onChange={(e) => setBrandFilter(e.target.value)}
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                  >
+                    <option value="all">All brands</option>
+                    {brands.map((brand) => (
+                      <option key={brand} value={brand}>
+                        {brand}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="highest">Highest value</option>
+                    <option value="brand">Brand A–Z</option>
+                  </select>
+                </div>
               </div>
 
               {collectionLoading ? (
                 <div className="mt-6 text-sm opacity-70">Loading collection...</div>
-              ) : collection.length === 0 ? (
+              ) : displayedCollection.length === 0 ? (
                 <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
-                  No bags saved yet.
+                  No bags match this view yet.
                 </div>
               ) : (
                 <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {collection.map((bag) => (
+                  {displayedCollection.map((bag) => (
                     <div
                       key={bag.id}
                       className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4]"
@@ -423,8 +533,20 @@ export default function Home() {
                       )}
 
                       <div className="p-6">
-                        <div className="text-lg font-semibold">{bag.brand}</div>
-                        <div className="text-base opacity-70">{bag.model}</div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-lg font-semibold">
+                              {bag.brand}
+                            </div>
+                            <div className="text-base opacity-70">
+                              {bag.model}
+                            </div>
+                          </div>
+
+                          <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
+                            {getConditionLabel(bag)}
+                          </div>
+                        </div>
 
                         <div className="mt-4 h-px bg-[#E7DDD3]" />
 
@@ -435,6 +557,10 @@ export default function Home() {
                         <div className="mt-2 text-sm font-medium">
                           {formatCurrency(bag.estimated_low)} –{" "}
                           {formatCurrency(bag.estimated_high)}
+                        </div>
+
+                        <div className="mt-2 text-xs opacity-55">
+                          Added {formatDate(bag.created_at)}
                         </div>
 
                         <button
@@ -566,7 +692,7 @@ export default function Home() {
               <div className="mt-4 space-y-3 text-sm opacity-70">
                 <p>• Your collection is private to your account.</p>
                 <p>• Value estimates are directional, not final market prices.</p>
-                <p>• Delete and re-add bags anytime as your closet evolves.</p>
+                <p>• Build your private portfolio one piece at a time.</p>
               </div>
             </section>
           </div>
