@@ -54,12 +54,20 @@ export default function HomePage() {
 
             <div className="flex flex-wrap gap-3">
               {userEmail ? (
-                <Link
-                  href="/app"
-                  className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
-                >
-                  Enter your archive
-                </Link>
+                <>
+                  <Link
+                    href="/settings"
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
+                  >
+                    Settings
+                  </Link>
+                  <Link
+                    href="/app"
+                    className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+                  >
+                    Enter your archive
+                  </Link>
+                </>
               ) : (
                 <>
                   <Link
@@ -109,12 +117,20 @@ export default function HomePage() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               {userEmail ? (
-                <Link
-                  href="/app"
-                  className="rounded-2xl bg-[#2C2A29] px-6 py-3 text-sm text-white transition hover:opacity-90"
-                >
-                  Open dashboard
-                </Link>
+                <>
+                  <Link
+                    href="/app"
+                    className="rounded-2xl bg-[#2C2A29] px-6 py-3 text-sm text-white transition hover:opacity-90"
+                  >
+                    Open dashboard
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-6 py-3 text-sm transition hover:bg-white"
+                  >
+                    Settings
+                  </Link>
+                </>
               ) : (
                 <>
                   <Link

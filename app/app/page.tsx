@@ -536,11 +536,19 @@ export default function AppPage() {
 
             <div className="flex gap-3">
               <Link
+                href="/settings"
+                className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
+              >
+                Settings
+              </Link>
+
+              <Link
                 href="/"
                 className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
               >
                 Home
               </Link>
+
               <motion.button
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.98 }}
