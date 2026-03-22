@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import AuthCard from "../components/AuthCard";
@@ -196,10 +197,7 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
           </linearGradient>
         </defs>
 
-        <path
-          d={areaPath}
-          fill="url(#luxelleArea)"
-        />
+        <path d={areaPath} fill="url(#luxelleArea)" />
         <path
           d={path}
           fill="none"
@@ -218,9 +216,7 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
             padding -
             ((point.value - min) / range) * (height - padding * 2);
 
-          return (
-            <circle key={index} cx={x} cy={y} r="4" fill="#2C2A29" />
-          );
+          return <circle key={index} cx={x} cy={y} r="4" fill="#2C2A29" />;
         })}
       </svg>
 
@@ -249,12 +245,6 @@ export default function Home() {
   const [condition, setCondition] = useState("Excellent");
   const [notes, setNotes] = useState("");
 
-  const [editingBagId, setEditingBagId] = useState<number | null>(null);
-  const [editPurchasePrice, setEditPurchasePrice] = useState("");
-  const [editCondition, setEditCondition] = useState("Excellent");
-  const [editNotes, setEditNotes] = useState("");
-  const [editMessage, setEditMessage] = useState("");
-
   function clearCurrentBagState() {
     setResult(null);
     setPreview("");
@@ -265,24 +255,6 @@ export default function Home() {
     setPurchasePrice("");
     setCondition("Excellent");
     setNotes("");
-  }
-
-  function startEditing(bag: SavedBag) {
-    setEditingBagId(bag.id);
-    setEditPurchasePrice(
-      bag.purchase_price !== null ? String(bag.purchase_price) : ""
-    );
-    setEditCondition(bag.condition || "Excellent");
-    setEditNotes(bag.notes || "");
-    setEditMessage("");
-  }
-
-  function cancelEditing() {
-    setEditingBagId(null);
-    setEditPurchasePrice("");
-    setEditCondition("Excellent");
-    setEditNotes("");
-    setEditMessage("");
   }
 
   async function loadUser() {
@@ -330,7 +302,6 @@ export default function Home() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
       clearCurrentBagState();
-      cancelEditing();
       loadUser();
       loadCollection();
     });
@@ -430,8 +401,6 @@ export default function Home() {
       return;
     }
 
-    console.log("USER ID:", user.id);
-
     try {
       const imageUrl = await uploadImageToStorage(selectedFile, user.id);
 
@@ -462,28 +431,6 @@ export default function Home() {
     }
   }
 
-  async function saveBagEdits(bagId: number) {
-    setEditMessage("");
-
-    const { error } = await supabase
-      .from("bags")
-      .update({
-        purchase_price: editPurchasePrice ? Number(editPurchasePrice) : null,
-        condition: editCondition,
-        notes: editNotes.trim() || null,
-      })
-      .eq("id", bagId);
-
-    if (error) {
-      setEditMessage("Could not save changes.");
-      return;
-    }
-
-    setEditMessage("Saved.");
-    await loadCollection();
-    setEditingBagId(null);
-  }
-
   async function deleteBag(bag: SavedBag) {
     const confirmed = window.confirm("Delete this bag from your collection?");
     if (!confirmed) return;
@@ -509,7 +456,6 @@ export default function Home() {
     setUserEmail(null);
     setCollection([]);
     clearCurrentBagState();
-    cancelEditing();
   }
 
   const totalLow = collection.reduce(
@@ -905,92 +851,25 @@ export default function Home() {
                             </>
                           )}
 
-                          {bag.notes && (
-                            <>
-                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                                Notes
-                              </div>
-                              <div className="mt-2 text-sm opacity-70">
-                                {bag.notes}
-                              </div>
-                            </>
-                          )}
-
                           <div className="mt-4 text-xs opacity-55">
                             Added {formatDate(bag.created_at)}
                           </div>
 
-                          {editingBagId === bag.id ? (
-                            <div className="mt-5 space-y-3 rounded-2xl border border-[#E7DDD3] bg-white p-4">
-                              <input
-                                type="number"
-                                placeholder="Purchase price"
-                                value={editPurchasePrice}
-                                onChange={(e) =>
-                                  setEditPurchasePrice(e.target.value)
-                                }
-                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                              />
+                          <div className="mt-5 grid grid-cols-2 gap-3">
+                            <Link
+                              href={`/bag/${bag.id}`}
+                              className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-sm text-white transition hover:opacity-90"
+                            >
+                              View details
+                            </Link>
 
-                              <select
-                                value={editCondition}
-                                onChange={(e) =>
-                                  setEditCondition(e.target.value)
-                                }
-                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                              >
-                                <option>Excellent</option>
-                                <option>Very good</option>
-                                <option>Good</option>
-                                <option>Fair</option>
-                                <option>Collector piece</option>
-                              </select>
-
-                              <textarea
-                                rows={3}
-                                placeholder="Notes"
-                                value={editNotes}
-                                onChange={(e) => setEditNotes(e.target.value)}
-                                className="w-full rounded-2xl border border-[#E7DDD3] px-4 py-3 text-sm outline-none"
-                              />
-
-                              <div className="grid grid-cols-2 gap-3">
-                                <button
-                                  onClick={() => saveBagEdits(bag.id)}
-                                  className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white"
-                                >
-                                  Save changes
-                                </button>
-                                <button
-                                  onClick={cancelEditing}
-                                  className="rounded-2xl border border-[#D8C7B8] bg-[#FCF8F4] px-4 py-3 text-sm"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-
-                              {editMessage && (
-                                <div className="text-sm opacity-70">
-                                  {editMessage}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="mt-5 grid grid-cols-2 gap-3">
-                              <button
-                                onClick={() => startEditing(bag)}
-                                className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                              >
-                                Edit details
-                              </button>
-                              <button
-                                onClick={() => deleteBag(bag)}
-                                className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                              >
-                                Delete bag
-                              </button>
-                            </div>
-                          )}
+                            <button
+                              onClick={() => deleteBag(bag)}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                            >
+                              Delete bag
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
