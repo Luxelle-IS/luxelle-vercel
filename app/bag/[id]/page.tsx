@@ -148,7 +148,7 @@ export default function BagDetailPage() {
       return;
     }
 
-    window.location.href = "/";
+    window.location.href = "/app";
   }
 
   const gainLow =
@@ -186,7 +186,7 @@ export default function BagDetailPage() {
           </div>
 
           <Link
-            href="/"
+            href="/app"
             className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
           >
             Back to dashboard
