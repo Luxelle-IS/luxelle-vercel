@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
 type SavedBag = {
@@ -41,11 +42,10 @@ function formatConfidence(confidence: string) {
   return "Low confidence";
 }
 
-export default function BagDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function BagDetailPage() {
+  const params = useParams();
+  const bagId = Array.isArray(params.id) ? params.id[0] : params.id;
+
   const [bag, setBag] = useState<SavedBag | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,10 +73,16 @@ export default function BagDetailPage({
       return;
     }
 
+    if (!bagId) {
+      setError("Bag not found.");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("bags")
       .select("*")
-      .eq("id", Number(params.id))
+      .eq("id", Number(bagId))
       .eq("user_id", user.id)
       .single();
 
@@ -97,7 +103,7 @@ export default function BagDetailPage({
 
   useEffect(() => {
     loadBag();
-  }, [params.id]);
+  }, [bagId]);
 
   async function saveChanges() {
     if (!bag) return;
@@ -342,7 +348,9 @@ export default function BagDetailPage({
                   </div>
                 )}
 
-                {message && <div className="mt-3 text-sm opacity-75">{message}</div>}
+                {message && (
+                  <div className="mt-3 text-sm opacity-75">{message}</div>
+                )}
               </div>
             </section>
           </div>
