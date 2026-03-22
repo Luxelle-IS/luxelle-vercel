@@ -25,8 +25,14 @@ type SavedBag = {
   created_at: string;
   user_id: string | null;
   purchase_price: number | null;
+  purchase_price_currency: string | null;
+  purchase_date: string | null;
   condition: string | null;
   notes: string | null;
+  color: string | null;
+  material: string | null;
+  size: string | null;
+  provenance_notes: string | null;
 };
 
 type SortOption = "newest" | "highest" | "brand";
@@ -44,6 +50,19 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatMoneyWithCurrency(value: number, currency?: string | null) {
+  const code = currency || "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${code} ${value}`;
+  }
+}
+
 function formatConfidence(confidence: string) {
   if (confidence === "high") return "High confidence";
   if (confidence === "medium") return "Moderate confidence";
@@ -53,6 +72,14 @@ function formatConfidence(confidence: string) {
 function formatDate(dateString: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(dateString));
+}
+
+function formatDateLong(dateString: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
     day: "numeric",
     year: "numeric",
   }).format(new Date(dateString));
@@ -328,8 +355,14 @@ export default function AppPage() {
   const [hideOnboarding, setHideOnboarding] = useState(false);
 
   const [purchasePrice, setPurchasePrice] = useState("");
+  const [purchasePriceCurrency, setPurchasePriceCurrency] = useState("USD");
+  const [purchaseDate, setPurchaseDate] = useState("");
   const [condition, setCondition] = useState("Excellent");
   const [notes, setNotes] = useState("");
+  const [color, setColor] = useState("");
+  const [material, setMaterial] = useState("");
+  const [size, setSize] = useState("");
+  const [provenanceNotes, setProvenanceNotes] = useState("");
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem("luxelle_onboarding_hidden");
@@ -344,8 +377,14 @@ export default function AppPage() {
     setSaveMessage("");
     setLoading(false);
     setPurchasePrice("");
+    setPurchasePriceCurrency("USD");
+    setPurchaseDate("");
     setCondition("Excellent");
     setNotes("");
+    setColor("");
+    setMaterial("");
+    setSize("");
+    setProvenanceNotes("");
   }
 
   async function loadUser() {
@@ -505,8 +544,14 @@ export default function AppPage() {
           image_url: imageUrl,
           user_id: user.id,
           purchase_price: purchasePrice ? Number(purchasePrice) : null,
+          purchase_price_currency: purchasePriceCurrency || "USD",
+          purchase_date: purchaseDate || null,
           condition,
           notes: notes.trim() || null,
+          color: color.trim() || null,
+          material: material.trim() || null,
+          size: size.trim() || null,
+          provenance_notes: provenanceNotes.trim() || null,
         },
       ]);
 
@@ -933,7 +978,10 @@ export default function AppPage() {
                                 Acquisition cost
                               </div>
                               <div className="mt-2 text-sm font-medium">
-                                {formatCurrency(bag.purchase_price)}
+                                {formatMoneyWithCurrency(
+                                  bag.purchase_price,
+                                  bag.purchase_price_currency
+                                )}
                               </div>
 
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
@@ -941,6 +989,30 @@ export default function AppPage() {
                               </div>
                               <div className={`mt-2 text-sm font-medium ${getPerformanceTone(gainHigh)}`}>
                                 {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
+                              </div>
+                            </>
+                          )}
+
+                          {(bag.color || bag.material || bag.size) && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Details
+                              </div>
+                              <div className="mt-2 text-sm opacity-75">
+                                {[bag.color, bag.material, bag.size]
+                                  .filter(Boolean)
+                                  .join(" • ")}
+                              </div>
+                            </>
+                          )}
+
+                          {bag.purchase_date && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Purchase date
+                              </div>
+                              <div className="mt-2 text-sm font-medium">
+                                {formatDateLong(bag.purchase_date)}
                               </div>
                             </>
                           )}
@@ -1075,31 +1147,105 @@ export default function AppPage() {
                     {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
                   </div>
 
-                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Acquisition cost
-                  </div>
-                  <input
-                    type="number"
-                    placeholder="Optional"
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                  />
+                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Acquisition cost
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="Optional"
+                        value={purchasePrice}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+                    </div>
 
-                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Condition
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Currency
+                      </div>
+                      <select
+                        value={purchasePriceCurrency}
+                        onChange={(e) => setPurchasePriceCurrency(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="CHF">CHF</option>
+                        <option value="AED">AED</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Purchase date
+                      </div>
+                      <input
+                        type="date"
+                        value={purchaseDate}
+                        onChange={(e) => setPurchaseDate(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Condition
+                      </div>
+                      <select
+                        value={condition}
+                        onChange={(e) => setCondition(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      >
+                        <option>Excellent</option>
+                        <option>Very good</option>
+                        <option>Good</option>
+                        <option>Fair</option>
+                        <option>Collector piece</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Color
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Material
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={material}
+                        onChange={(e) => setMaterial(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Size
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={size}
+                        onChange={(e) => setSize(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+                    </div>
                   </div>
-                  <select
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                  >
-                    <option>Excellent</option>
-                    <option>Very good</option>
-                    <option>Good</option>
-                    <option>Fair</option>
-                    <option>Collector piece</option>
-                  </select>
 
                   <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
                     Personal notes
@@ -1108,7 +1254,18 @@ export default function AppPage() {
                     placeholder="Optional notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
+                    rows={3}
+                    className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                  />
+
+                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Provenance / receipt notes
+                  </div>
+                  <textarea
+                    placeholder="Boutique, year, receipt details, provenance, serial info, etc."
+                    value={provenanceNotes}
+                    onChange={(e) => setProvenanceNotes(e.target.value)}
+                    rows={3}
                     className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                   />
 

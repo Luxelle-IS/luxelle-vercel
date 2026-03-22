@@ -17,8 +17,14 @@ type SavedBag = {
   created_at: string;
   user_id: string | null;
   purchase_price: number | null;
+  purchase_price_currency: string | null;
+  purchase_date: string | null;
   condition: string | null;
   notes: string | null;
+  color: string | null;
+  material: string | null;
+  size: string | null;
+  provenance_notes: string | null;
 };
 
 function formatCurrency(value: number) {
@@ -27,6 +33,19 @@ function formatCurrency(value: number) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatMoneyWithCurrency(value: number, currency?: string | null) {
+  const code = currency || "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${code} ${value}`;
+  }
 }
 
 function formatDate(dateString: string) {
@@ -59,8 +78,14 @@ export default function BagDetailPage() {
 
   const [editing, setEditing] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState("");
+  const [purchasePriceCurrency, setPurchasePriceCurrency] = useState("USD");
+  const [purchaseDate, setPurchaseDate] = useState("");
   const [condition, setCondition] = useState("Excellent");
   const [notes, setNotes] = useState("");
+  const [color, setColor] = useState("");
+  const [material, setMaterial] = useState("");
+  const [size, setSize] = useState("");
+  const [provenanceNotes, setProvenanceNotes] = useState("");
   const [message, setMessage] = useState("");
 
   async function loadBag() {
@@ -102,8 +127,14 @@ export default function BagDetailPage() {
     setPurchasePrice(
       data.purchase_price !== null ? String(data.purchase_price) : ""
     );
+    setPurchasePriceCurrency(data.purchase_price_currency || "USD");
+    setPurchaseDate(data.purchase_date || "");
     setCondition(data.condition || "Excellent");
     setNotes(data.notes || "");
+    setColor(data.color || "");
+    setMaterial(data.material || "");
+    setSize(data.size || "");
+    setProvenanceNotes(data.provenance_notes || "");
     setLoading(false);
   }
 
@@ -120,8 +151,14 @@ export default function BagDetailPage() {
       .from("bags")
       .update({
         purchase_price: purchasePrice ? Number(purchasePrice) : null,
+        purchase_price_currency: purchasePriceCurrency || "USD",
+        purchase_date: purchaseDate || null,
         condition,
         notes: notes.trim() || null,
+        color: color.trim() || null,
+        material: material.trim() || null,
+        size: size.trim() || null,
+        provenance_notes: provenanceNotes.trim() || null,
       })
       .eq("id", bag.id);
 
@@ -243,7 +280,8 @@ export default function BagDetailPage() {
                     Estimated value
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+                    {formatCurrency(bag.estimated_low)} –{" "}
+                    {formatCurrency(bag.estimated_high)}
                   </div>
                 </div>
 
@@ -261,7 +299,12 @@ export default function BagDetailPage() {
                     Acquisition cost
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {bag.purchase_price !== null ? formatCurrency(bag.purchase_price) : "Not added"}
+                    {bag.purchase_price !== null
+                      ? formatMoneyWithCurrency(
+                          bag.purchase_price,
+                          bag.purchase_price_currency
+                        )
+                      : "Not added"}
                   </div>
                 </div>
 
@@ -273,6 +316,30 @@ export default function BagDetailPage() {
                     {formatDate(bag.created_at)}
                   </div>
                 </div>
+
+                {bag.purchase_date && (
+                  <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                      Purchase date
+                    </div>
+                    <div className="mt-3 text-lg font-semibold">
+                      {formatDate(bag.purchase_date)}
+                    </div>
+                  </div>
+                )}
+
+                {(bag.color || bag.material || bag.size) && (
+                  <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                      Archive details
+                    </div>
+                    <div className="mt-3 text-sm leading-relaxed opacity-80">
+                      {bag.color && <div>Color: {bag.color}</div>}
+                      {bag.material && <div>Material: {bag.material}</div>}
+                      {bag.size && <div>Size: {bag.size}</div>}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {bag.purchase_price !== null && (
@@ -281,7 +348,8 @@ export default function BagDetailPage() {
                     Performance potential
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
+                    {formatCurrency(gainLow ?? 0)} –{" "}
+                    {formatCurrency(gainHigh ?? 0)}
                   </div>
                 </div>
               )}
@@ -292,6 +360,15 @@ export default function BagDetailPage() {
                 </div>
                 <div className="mt-3 text-sm opacity-75">
                   {bag.notes || "No notes have been added yet."}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                  Provenance / receipt notes
+                </div>
+                <div className="mt-3 text-sm opacity-75">
+                  {bag.provenance_notes || "No provenance notes have been added yet."}
                 </div>
               </div>
 
@@ -317,36 +394,89 @@ export default function BagDetailPage() {
                     </motion.button>
                   </div>
                 ) : (
-                  <div className="space-y-3 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                  <div className="space-y-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                     <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                       Edit details
                     </div>
 
-                    <input
-                      type="number"
-                      placeholder="Acquisition cost"
-                      value={purchasePrice}
-                      onChange={(e) => setPurchasePrice(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                    />
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <input
+                        type="number"
+                        placeholder="Acquisition cost"
+                        value={purchasePrice}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
 
-                    <select
-                      value={condition}
-                      onChange={(e) => setCondition(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                    >
-                      <option>Excellent</option>
-                      <option>Very good</option>
-                      <option>Good</option>
-                      <option>Fair</option>
-                      <option>Collector piece</option>
-                    </select>
+                      <select
+                        value={purchasePriceCurrency}
+                        onChange={(e) => setPurchasePriceCurrency(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="CHF">CHF</option>
+                        <option value="AED">AED</option>
+                      </select>
+
+                      <input
+                        type="date"
+                        value={purchaseDate}
+                        onChange={(e) => setPurchaseDate(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+
+                      <select
+                        value={condition}
+                        onChange={(e) => setCondition(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      >
+                        <option>Excellent</option>
+                        <option>Very good</option>
+                        <option>Good</option>
+                        <option>Fair</option>
+                        <option>Collector piece</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        placeholder="Color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Material"
+                        value={material}
+                        onChange={(e) => setMaterial(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Size"
+                        value={size}
+                        onChange={(e) => setSize(e.target.value)}
+                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none sm:col-span-2"
+                      />
+                    </div>
 
                     <textarea
-                      rows={4}
+                      rows={3}
                       placeholder="Personal notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
+                      className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                    />
+
+                    <textarea
+                      rows={3}
+                      placeholder="Provenance / receipt notes"
+                      value={provenanceNotes}
+                      onChange={(e) => setProvenanceNotes(e.target.value)}
                       className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                     />
 
@@ -365,8 +495,14 @@ export default function BagDetailPage() {
                           setPurchasePrice(
                             bag.purchase_price !== null ? String(bag.purchase_price) : ""
                           );
+                          setPurchasePriceCurrency(bag.purchase_price_currency || "USD");
+                          setPurchaseDate(bag.purchase_date || "");
                           setCondition(bag.condition || "Excellent");
                           setNotes(bag.notes || "");
+                          setColor(bag.color || "");
+                          setMaterial(bag.material || "");
+                          setSize(bag.size || "");
+                          setProvenanceNotes(bag.provenance_notes || "");
                           setMessage("");
                         }}
                         className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3"
