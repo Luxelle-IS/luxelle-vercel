@@ -1,163 +1,142 @@
+import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-function getEstimatedValue(brand: string, model: string) {
-  const b = brand.toLowerCase();
-  const m = model.toLowerCase();
-
-  const rules = [
-    {
-      brand: "louis vuitton",
-      match: ["pochette métis", "pochette metis"],
-      low: 1800,
-      high: 2600,
-    },
-    {
-      brand: "louis vuitton",
-      match: ["neverfull"],
-      low: 900,
-      high: 1800,
-    },
-    {
-      brand: "louis vuitton",
-      match: ["speedy"],
-      low: 700,
-      high: 1600,
-    },
-    {
-      brand: "chanel",
-      match: ["classic flap"],
-      low: 6000,
-      high: 11000,
-    },
-    {
-      brand: "chanel",
-      match: ["boy bag"],
-      low: 2500,
-      high: 5000,
-    },
-    {
-      brand: "hermès",
-      match: ["birkin", "birkin 25", "birkin 30"],
-      low: 9000,
-      high: 30000,
-    },
-    {
-      brand: "hermes",
-      match: ["birkin", "birkin 25", "birkin 30"],
-      low: 9000,
-      high: 30000,
-    },
-    {
-      brand: "hermès",
-      match: ["kelly", "kelly 25", "kelly 28"],
-      low: 8000,
-      high: 28000,
-    },
-    {
-      brand: "hermes",
-      match: ["kelly", "kelly 25", "kelly 28"],
-      low: 8000,
-      high: 28000,
-    },
-    {
-      brand: "jacquemus",
-      match: ["le chiquito"],
-      low: 250,
-      high: 650,
-    },
-    {
-      brand: "jacquemus",
-      match: ["le bambino"],
-      low: 300,
-      high: 700,
-    },
-  ];
-
-  for (const rule of rules) {
-    if (b.includes(rule.brand) && rule.match.some((term) => m.includes(term))) {
-      return { low: rule.low, high: rule.high };
-    }
-  }
-
-  if (b.includes("louis vuitton")) return { low: 700, high: 2000 };
-  if (b.includes("chanel")) return { low: 2500, high: 7000 };
-  if (b.includes("hermès") || b.includes("hermes")) return { low: 5000, high: 20000 };
-  if (b.includes("jacquemus")) return { low: 200, high: 700 };
-
-  return { low: 500, high: 1500 };
-}
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      return Response.json(
-        { error: "OPENAI_API_KEY is missing in Vercel or .env.local" },
-        { status: 500 }
-      );
-    }
-
     const body = await req.json();
-    const image = body.image;
+    const image = body?.image;
 
     if (!image) {
-      return Response.json({ error: "No image received." }, { status: 400 });
+      return NextResponse.json({ error: "Missing image." }, { status: 400 });
     }
-
-    const client = new OpenAI({ apiKey });
 
     const response = await client.responses.create({
       model: "gpt-4.1-mini",
       input: [
         {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: `
+You are a luxury handbag identification assistant for a premium archive app called Luxelle.
+
+Your job:
+- Identify the most likely handbag brand and model from the image
+- Estimate a realistic resale value range in USD
+- Return a refined editorial-style description
+- Explain confidence clearly and briefly
+- Keep the tone premium, concise, and elegant
+- If uncertain, still provide the best likely answer, but be honest in the confidence explanation
+
+Rules:
+- Return ONLY valid JSON
+- Do not include markdown fences
+- Estimated values must be integers in USD
+- Keep descriptions short and premium
+- Never say "I can't tell" unless the image is truly unusable
+- Prefer likely mainstream luxury handbag identification over obscure speculation
+
+Return this exact JSON shape:
+{
+  "brand": "string",
+  "model": "string",
+  "confidence": "high" | "medium" | "low",
+  "confidenceReason": "string",
+  "description": "string",
+  "reasoning": "string",
+  "estimatedLow": number,
+  "estimatedHigh": number
+}
+              `.trim(),
+            },
+          ],
+        },
+        {
           role: "user",
           content: [
             {
               type: "input_text",
-              text: 'Identify this handbag. Respond ONLY in valid JSON with this exact shape: {"brand":"...","model":"...","confidence":"low|medium|high"}. No markdown. No extra text.',
+              text: `
+Identify this luxury handbag from the image.
+
+Please provide:
+- brand
+- model
+- confidence
+- confidenceReason
+- description
+- reasoning
+- estimatedLow
+- estimatedHigh
+
+The description should sound premium and concise, like a luxury archive note.
+The reasoning should briefly mention visible cues such as silhouette, hardware, quilting, leather texture, handle shape, flap structure, logo placement, or color/material cues.
+Return JSON only.
+              `.trim(),
             },
             {
               type: "input_image",
               image_url: image,
-              detail: "low",
+              detail: "high",
             },
           ],
         },
       ],
     });
 
-    const text = response.output_text || "";
+    const rawText =
+      response.output_text ||
+      response.output
+        ?.flatMap((item: any) => item.content || [])
+        ?.map((c: any) => c.text || "")
+        ?.join("") ||
+      "";
 
-    let parsed: {
-      brand: string;
-      model: string;
-      confidence: string;
-    };
-
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = {
-        brand: "Unknown",
-        model: text || "No result found.",
-        confidence: "medium",
-      };
+    if (!rawText) {
+      return NextResponse.json(
+        { error: "No response text returned from model." },
+        { status: 500 }
+      );
     }
 
-    const estimate = getEstimatedValue(parsed.brand, parsed.model);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      return NextResponse.json(
+        {
+          error: "Model returned invalid JSON.",
+          raw: rawText,
+        },
+        { status: 500 }
+      );
+    }
 
-    return Response.json({
-      ...parsed,
-      estimatedLow: estimate.low,
-      estimatedHigh: estimate.high,
+    return NextResponse.json({
+      brand: parsed.brand || "Unknown",
+      model: parsed.model || "Unspecified model",
+      confidence: parsed.confidence || "low",
+      confidenceReason:
+        parsed.confidenceReason ||
+        "The visual cues were limited, so this result should be treated as directional.",
+      description:
+        parsed.description ||
+        "A refined luxury handbag with identifiable archival value.",
+      reasoning:
+        parsed.reasoning ||
+        "The identification is based on the overall silhouette and visible exterior details.",
+      estimatedLow: Number(parsed.estimatedLow) || 0,
+      estimatedHigh: Number(parsed.estimatedHigh) || 0,
     });
   } catch (error: any) {
-    console.error("IDENTIFY API ERROR:", error);
-
-    return Response.json(
+    return NextResponse.json(
       {
-        error: error?.message || "Unknown server error.",
+        error: error?.message || "Something went wrong.",
       },
       { status: 500 }
     );

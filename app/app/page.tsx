@@ -10,6 +10,9 @@ type IdentifyResult = {
   brand: string;
   model: string;
   confidence: string;
+  confidenceReason: string;
+  description: string;
+  reasoning: string;
   estimatedLow: number;
   estimatedHigh: number;
 };
@@ -1129,22 +1132,42 @@ export default function AppPage() {
                   <div className="mt-3 text-2xl font-semibold">{result.brand}</div>
                   <div className="text-lg opacity-75">{result.model}</div>
 
+                  <div className="mt-4 text-sm leading-relaxed opacity-80">
+                    {result.description}
+                  </div>
+
                   <div className="mt-4 h-px bg-[#E7DDD3]" />
 
-                  <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Confidence
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Confidence
+                      </div>
+                      <div className="mt-2 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
+                        {formatConfidence(result.confidence)}
+                      </div>
+                      <div className="mt-2 text-sm leading-relaxed opacity-75">
+                        {result.confidenceReason}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                        Estimated value range
+                      </div>
+                      <div className="mt-2 text-base font-medium">
+                        {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-2 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
-                    {formatConfidence(result.confidence)}
-                  </div>
-
-                  <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Estimated value range
-                  </div>
-
-                  <div className="mt-2 text-base font-medium">
-                    {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
+                  <div className="mt-5 rounded-[22px] border border-[#E7DDD3] bg-white p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                      What the model noticed
+                    </div>
+                    <div className="mt-2 text-sm leading-relaxed opacity-75">
+                      {result.reasoning}
+                    </div>
                   </div>
 
                   <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
