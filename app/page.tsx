@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "../lib/supabase";
 import AuthCard from "../components/AuthCard";
 
@@ -227,6 +228,11 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
     </div>
   );
 }
+
+const fadeUp = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+};
 
 export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -458,42 +464,25 @@ export default function Home() {
     clearCurrentBagState();
   }
 
-  const totalLow = collection.reduce(
-    (sum, bag) => sum + (bag.estimated_low || 0),
-    0
-  );
-
-  const totalHigh = collection.reduce(
-    (sum, bag) => sum + (bag.estimated_high || 0),
-    0
-  );
-
-  const totalPurchasePrice = collection.reduce(
-    (sum, bag) => sum + (bag.purchase_price || 0),
-    0
-  );
+  const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
+  const totalHigh = collection.reduce((sum, bag) => sum + (bag.estimated_high || 0), 0);
+  const totalPurchasePrice = collection.reduce((sum, bag) => sum + (bag.purchase_price || 0), 0);
 
   const potentialGainLow = totalLow - totalPurchasePrice;
   const potentialGainHigh = totalHigh - totalPurchasePrice;
 
   const averageValue =
-    collection.length > 0
-      ? Math.round((totalLow + totalHigh) / 2 / collection.length)
-      : 0;
+    collection.length > 0 ? Math.round((totalLow + totalHigh) / 2 / collection.length) : 0;
 
   const mostValuableBag = useMemo(() => {
     if (collection.length === 0) return null;
-    return [...collection].sort(
-      (a, b) => (b.estimated_high || 0) - (a.estimated_high || 0)
-    )[0];
+    return [...collection].sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0))[0];
   }, [collection]);
 
   const latestBag = collection.length > 0 ? collection[0] : null;
 
   const brands = useMemo(() => {
-    const uniqueBrands = Array.from(
-      new Set(collection.map((bag) => bag.brand).filter(Boolean))
-    );
+    const uniqueBrands = Array.from(new Set(collection.map((bag) => bag.brand).filter(Boolean)));
     return uniqueBrands.sort((a, b) => a.localeCompare(b));
   }, [collection]);
 
@@ -509,19 +498,27 @@ export default function Home() {
     } else if (sortBy === "brand") {
       items.sort((a, b) => a.brand.localeCompare(b.brand));
     } else {
-      items.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
     return items;
   }, [collection, brandFilter, sortBy]);
 
   return (
-    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10">
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.45 }}
+      className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10"
+    >
       <div className="mx-auto w-full max-w-7xl">
-        <div className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur">
+        <motion.div
+          variants={fadeUp}
+          initial="initial"
+          animate="animate"
+          transition={{ duration: 0.45 }}
+          className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur"
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
@@ -539,28 +536,38 @@ export default function Home() {
 
             <div className="flex gap-3">
               {userEmail ? (
-                <button
+                <motion.button
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={signOut}
                   className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
                 >
                   Log out
-                </button>
+                </motion.button>
               ) : (
-                <a
+                <motion.a
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   href="https://tally.so/r/ODPO7Y"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
                 >
                   Join the waitlist
-                </a>
+                </motion.a>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {!userEmail && (
-          <div className="mb-8">
+          <motion.div
+            variants={fadeUp}
+            initial="initial"
+            animate="animate"
+            transition={{ delay: 0.05, duration: 0.45 }}
+            className="mb-8"
+          >
             <AuthCard
               onAuthSuccess={() => {
                 clearCurrentBagState();
@@ -568,12 +575,18 @@ export default function Home() {
                 loadCollection();
               }}
             />
-          </div>
+          </motion.div>
         )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-8">
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.08, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
               <div className="flex items-center justify-between">
                 <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                   Collection Overview
@@ -593,105 +606,86 @@ export default function Home() {
               ) : (
                 <>
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Total pieces
-                      </div>
-                      <div className="mt-3 text-3xl font-semibold">
-                        {collection.length}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Collection value
-                      </div>
-                      <div className="mt-3 text-lg font-semibold leading-snug">
-                        {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Total acquisition cost
-                      </div>
-                      <div className="mt-3 text-2xl font-semibold">
-                        {formatCurrency(totalPurchasePrice)}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Average piece value
-                      </div>
-                      <div className="mt-3 text-2xl font-semibold">
-                        {formatCurrency(averageValue)}
-                      </div>
-                    </div>
+                    {[
+                      ["Total pieces", String(collection.length)],
+                      [
+                        "Collection value",
+                        `${formatCurrency(totalLow)} – ${formatCurrency(totalHigh)}`,
+                      ],
+                      ["Total acquisition cost", formatCurrency(totalPurchasePrice)],
+                      ["Average piece value", formatCurrency(averageValue)],
+                    ].map(([label, value], index) => (
+                      <motion.div
+                        key={label}
+                        whileHover={{ y: -3 }}
+                        transition={{ duration: 0.18 }}
+                        className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5"
+                      >
+                        <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                          {label}
+                        </div>
+                        <div className="mt-3 text-2xl font-semibold leading-snug">
+                          {value}
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
 
                   <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Potential performance
                       </div>
                       <div className="mt-3 text-lg font-semibold">
-                        {formatCurrency(potentialGainLow)} –{" "}
-                        {formatCurrency(potentialGainHigh)}
+                        {formatCurrency(potentialGainLow)} – {formatCurrency(potentialGainHigh)}
                       </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Signature piece
                       </div>
                       {mostValuableBag ? (
                         <>
-                          <div className="mt-3 text-lg font-semibold">
-                            {mostValuableBag.brand}
-                          </div>
-                          <div className="text-sm opacity-70">
-                            {mostValuableBag.model}
-                          </div>
+                          <div className="mt-3 text-lg font-semibold">{mostValuableBag.brand}</div>
+                          <div className="text-sm opacity-70">{mostValuableBag.model}</div>
                         </>
                       ) : (
-                        <div className="mt-3 text-sm opacity-70">
-                          No pieces saved yet.
-                        </div>
+                        <div className="mt-3 text-sm opacity-70">No pieces saved yet.</div>
                       )}
-                    </div>
+                    </motion.div>
 
-                    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                         Latest addition
                       </div>
                       {latestBag ? (
                         <>
-                          <div className="mt-3 text-lg font-semibold">
-                            {latestBag.brand}
-                          </div>
-                          <div className="text-sm opacity-70">
-                            {latestBag.model}
-                          </div>
+                          <div className="mt-3 text-lg font-semibold">{latestBag.brand}</div>
+                          <div className="text-sm opacity-70">{latestBag.model}</div>
                           <div className="mt-3 text-sm opacity-60">
                             Added {formatDate(latestBag.created_at)}
                           </div>
                         </>
                       ) : (
-                        <div className="mt-3 text-sm opacity-70">
-                          No pieces saved yet.
-                        </div>
+                        <div className="mt-3 text-sm opacity-70">No pieces saved yet.</div>
                       )}
-                    </div>
+                    </motion.div>
                   </div>
 
                   <PortfolioChart collection={collection} />
                 </>
               )}
-            </section>
+            </motion.section>
 
             {mostValuableBag && (
-              <section className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm">
+              <motion.section
+                variants={fadeUp}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.12, duration: 0.45 }}
+                className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr]">
                   <div className="p-8">
                     <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
@@ -726,10 +720,16 @@ export default function Home() {
                     />
                   </div>
                 </div>
-              </section>
+              </motion.section>
             )}
 
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.16, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
@@ -773,9 +773,7 @@ export default function Home() {
                 </div>
               ) : displayedCollection.length === 0 ? (
                 <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
-                  <div className="text-lg font-semibold">
-                    Begin your private archive
-                  </div>
+                  <div className="text-lg font-semibold">Begin your private archive</div>
                   <div className="mt-2 text-sm opacity-70">
                     Add your first piece to start tracking value, purchase history,
                     and collection performance in one place.
@@ -788,9 +786,11 @@ export default function Home() {
                     const gainHigh = getGainHigh(bag);
 
                     return (
-                      <div
+                      <motion.div
                         key={bag.id}
-                        className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] transition duration-200 hover:-translate-y-1 hover:shadow-md"
+                        whileHover={{ y: -4 }}
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] shadow-sm"
                       >
                         {bag.image_url && (
                           <img
@@ -803,12 +803,8 @@ export default function Home() {
                         <div className="p-6">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-lg font-semibold">
-                                {bag.brand}
-                              </div>
-                              <div className="text-base opacity-70">
-                                {bag.model}
-                              </div>
+                              <div className="text-lg font-semibold">{bag.brand}</div>
+                              <div className="text-base opacity-70">{bag.model}</div>
                             </div>
 
                             <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
@@ -822,8 +818,7 @@ export default function Home() {
                             Estimated value
                           </div>
                           <div className="mt-2 text-sm font-medium">
-                            {formatCurrency(bag.estimated_low)} –{" "}
-                            {formatCurrency(bag.estimated_high)}
+                            {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
                           </div>
 
                           {bag.purchase_price !== null && (
@@ -838,13 +833,8 @@ export default function Home() {
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
                                 Performance potential
                               </div>
-                              <div
-                                className={`mt-2 text-sm font-medium ${getPerformanceTone(
-                                  gainHigh
-                                )}`}
-                              >
-                                {formatCurrency(gainLow ?? 0)} –{" "}
-                                {formatCurrency(gainHigh ?? 0)}
+                              <div className={`mt-2 text-sm font-medium ${getPerformanceTone(gainHigh)}`}>
+                                {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
                               </div>
                             </>
                           )}
@@ -854,31 +844,40 @@ export default function Home() {
                           </div>
 
                           <div className="mt-5 grid grid-cols-2 gap-3">
-                            <Link
-                              href={`/bag/${bag.id}`}
-                              className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-sm text-white transition hover:opacity-90"
-                            >
-                              View details
-                            </Link>
+                            <motion.div whileTap={{ scale: 0.98 }}>
+                              <Link
+                                href={`/bag/${bag.id}`}
+                                className="block rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-sm text-white transition hover:opacity-90"
+                              >
+                                View details
+                              </Link>
+                            </motion.div>
 
-                            <button
+                            <motion.button
+                              whileTap={{ scale: 0.98 }}
                               onClick={() => deleteBag(bag)}
                               className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
                             >
                               Remove piece
-                            </button>
+                            </motion.button>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
               )}
-            </section>
+            </motion.section>
           </div>
 
           <div className="space-y-8">
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.12, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                 Identify a Piece
               </div>
@@ -898,9 +897,7 @@ export default function Home() {
                 <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-10 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
                   <div>
                     <div className="font-medium">Upload a bag image</div>
-                    <div className="mt-1 text-xs opacity-60">
-                      JPG, PNG, or HEIC
-                    </div>
+                    <div className="mt-1 text-xs opacity-60">JPG, PNG, or HEIC</div>
                   </div>
                   <input
                     type="file"
@@ -912,13 +909,17 @@ export default function Home() {
               </div>
 
               {preview && (
-                <div className="mt-6 overflow-hidden rounded-[28px] border border-black/5 bg-white">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 overflow-hidden rounded-[28px] border border-black/5 bg-white"
+                >
                   <img
                     src={preview}
                     alt="Bag preview"
                     className="h-72 w-full object-cover"
                   />
-                </div>
+                </motion.div>
               )}
 
               {loading && (
@@ -937,15 +938,16 @@ export default function Home() {
               )}
 
               {result && !loading && (
-                <div className="mt-6 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6"
+                >
                   <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                     Suggested match
                   </div>
 
-                  <div className="mt-3 text-2xl font-semibold">
-                    {result.brand}
-                  </div>
-
+                  <div className="mt-3 text-2xl font-semibold">{result.brand}</div>
                   <div className="text-lg opacity-75">{result.model}</div>
 
                   <div className="mt-4 h-px bg-[#E7DDD3]" />
@@ -963,8 +965,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-2 text-base font-medium">
-                    {formatCurrency(result.estimatedLow)} –{" "}
-                    {formatCurrency(result.estimatedHigh)}
+                    {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
                   </div>
 
                   <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
@@ -1008,21 +1009,27 @@ export default function Home() {
                     Estimates are directional and designed for collection management.
                   </div>
 
-                  <button
+                  <motion.button
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={saveToCollection}
                     className="mt-6 w-full rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
                   >
                     Save to collection
-                  </button>
+                  </motion.button>
 
-                  {saveMessage && (
-                    <div className="mt-3 text-sm opacity-80">{saveMessage}</div>
-                  )}
-                </div>
+                  {saveMessage && <div className="mt-3 text-sm opacity-80">{saveMessage}</div>}
+                </motion.div>
               )}
-            </section>
+            </motion.section>
 
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.16, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                 Private by Design
               </div>
@@ -1031,10 +1038,10 @@ export default function Home() {
                 <p>• Value ranges are directional, not final resale offers.</p>
                 <p>• Each piece can be refined over time with notes and acquisition history.</p>
               </div>
-            </section>
+            </motion.section>
           </div>
         </div>
       </div>
-    </main>
+    </motion.main>
   );
 }

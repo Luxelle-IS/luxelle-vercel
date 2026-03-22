@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
@@ -41,6 +42,11 @@ function formatConfidence(confidence: string) {
   if (confidence === "medium") return "Moderate confidence";
   return "Low confidence";
 }
+
+const fadeUp = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+};
 
 export default function BagDetailPage() {
   const params = useParams();
@@ -156,9 +162,20 @@ export default function BagDetailPage() {
       : null;
 
   return (
-    <main className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10">
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.45 }}
+      className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10"
+    >
       <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-8 flex items-center justify-between rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm">
+        <motion.div
+          variants={fadeUp}
+          initial="initial"
+          animate="animate"
+          transition={{ duration: 0.45 }}
+          className="mb-8 flex items-center justify-between rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm"
+        >
           <div>
             <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
               Luxelle
@@ -174,7 +191,7 @@ export default function BagDetailPage() {
           >
             Back to dashboard
           </Link>
-        </div>
+        </motion.div>
 
         {loading ? (
           <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
@@ -186,15 +203,27 @@ export default function BagDetailPage() {
           </div>
         ) : bag ? (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.05, duration: 0.45 }}
+              className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm"
+            >
               <img
                 src={bag.image_url}
                 alt={`${bag.brand} ${bag.model}`}
                 className="h-full min-h-[420px] w-full object-cover"
               />
-            </section>
+            </motion.section>
 
-            <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.08, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                 Piece Details
               </div>
@@ -214,8 +243,7 @@ export default function BagDetailPage() {
                     Estimated value
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(bag.estimated_low)} –{" "}
-                    {formatCurrency(bag.estimated_high)}
+                    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
                   </div>
                 </div>
 
@@ -233,9 +261,7 @@ export default function BagDetailPage() {
                     Acquisition cost
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {bag.purchase_price !== null
-                      ? formatCurrency(bag.purchase_price)
-                      : "Not added"}
+                    {bag.purchase_price !== null ? formatCurrency(bag.purchase_price) : "Not added"}
                   </div>
                 </div>
 
@@ -255,8 +281,7 @@ export default function BagDetailPage() {
                     Performance potential
                   </div>
                   <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(gainLow ?? 0)} –{" "}
-                    {formatCurrency(gainHigh ?? 0)}
+                    {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
                   </div>
                 </div>
               )}
@@ -273,19 +298,23 @@ export default function BagDetailPage() {
               <div className="mt-6">
                 {!editing ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <button
+                    <motion.button
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => setEditing(true)}
                       className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
                     >
                       Edit details
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={deleteBag}
                       className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 transition hover:bg-[#F8F3EE]"
                     >
                       Remove piece
-                    </button>
+                    </motion.button>
                   </div>
                 ) : (
                   <div className="space-y-3 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
@@ -322,19 +351,19 @@ export default function BagDetailPage() {
                     />
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={saveChanges}
                         className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-white"
                       >
                         Save changes
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           setEditing(false);
                           setPurchasePrice(
-                            bag.purchase_price !== null
-                              ? String(bag.purchase_price)
-                              : ""
+                            bag.purchase_price !== null ? String(bag.purchase_price) : ""
                           );
                           setCondition(bag.condition || "Excellent");
                           setNotes(bag.notes || "");
@@ -343,17 +372,17 @@ export default function BagDetailPage() {
                         className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3"
                       >
                         Cancel
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                 )}
 
                 {message && <div className="mt-3 text-sm opacity-75">{message}</div>}
               </div>
-            </section>
+            </motion.section>
           </div>
         ) : null}
       </div>
-    </main>
+    </motion.main>
   );
 }
