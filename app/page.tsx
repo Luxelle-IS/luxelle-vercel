@@ -145,7 +145,7 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
   if (collection.length === 0) {
     return (
       <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
-        Start building your private luxury archive to see your portfolio trend.
+        Start your private archive to reveal how your collection evolves over time.
       </div>
     );
   }
@@ -342,13 +342,13 @@ export default function Home() {
         try {
           data = JSON.parse(text);
         } catch {
-          setError("Server returned HTML instead of JSON.");
+          setError("The server returned an unexpected response.");
           setLoading(false);
           return;
         }
 
         if (!res.ok) {
-          setError(data.error || "Server returned an error.");
+          setError(data.error || "The identification request could not be completed.");
           setLoading(false);
           return;
         }
@@ -397,7 +397,7 @@ export default function Home() {
     const user = data?.user;
 
     if (userError || !user || !user.id) {
-      setSaveMessage("Auth error. Please log out and back in.");
+      setSaveMessage("Please log out and back in before saving.");
       return;
     }
 
@@ -420,19 +420,19 @@ export default function Home() {
       ]);
 
       if (error) {
-        setSaveMessage(error.message || "Could not save bag.");
+        setSaveMessage(error.message || "This piece could not be saved.");
         return;
       }
 
-      setSaveMessage("Saved to your collection.");
+      setSaveMessage("Saved to your private collection.");
       loadCollection();
     } catch (err: any) {
-      setSaveMessage(err?.message || "Could not upload image.");
+      setSaveMessage(err?.message || "The image could not be uploaded.");
     }
   }
 
   async function deleteBag(bag: SavedBag) {
-    const confirmed = window.confirm("Delete this bag from your collection?");
+    const confirmed = window.confirm("Remove this bag from your collection?");
     if (!confirmed) return;
 
     const storagePath = extractStoragePath(bag.image_url);
@@ -444,7 +444,7 @@ export default function Home() {
     const { error } = await supabase.from("bags").delete().eq("id", bag.id);
 
     if (error) {
-      alert("Could not delete bag.");
+      alert("This bag could not be removed.");
       return;
     }
 
@@ -579,25 +579,23 @@ export default function Home() {
                   Collection Overview
                 </div>
                 <div className="text-xs opacity-50">
-                  A private archive of your luxury pieces
+                  A private archive of your most important pieces
                 </div>
               </div>
 
               {collectionLoading ? (
-                <>
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <LoadingCard />
-                    <LoadingCard />
-                    <LoadingCard />
-                    <LoadingCard />
-                  </div>
-                </>
+                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <LoadingCard />
+                  <LoadingCard />
+                  <LoadingCard />
+                  <LoadingCard />
+                </div>
               ) : (
                 <>
                   <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Total items
+                        Total pieces
                       </div>
                       <div className="mt-3 text-3xl font-semibold">
                         {collection.length}
@@ -606,7 +604,7 @@ export default function Home() {
 
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Portfolio value
+                        Collection value
                       </div>
                       <div className="mt-3 text-lg font-semibold leading-snug">
                         {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
@@ -615,7 +613,7 @@ export default function Home() {
 
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Total purchase price
+                        Total acquisition cost
                       </div>
                       <div className="mt-3 text-2xl font-semibold">
                         {formatCurrency(totalPurchasePrice)}
@@ -624,7 +622,7 @@ export default function Home() {
 
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5 transition hover:-translate-y-0.5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Average bag value
+                        Average piece value
                       </div>
                       <div className="mt-3 text-2xl font-semibold">
                         {formatCurrency(averageValue)}
@@ -635,7 +633,7 @@ export default function Home() {
                   <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Potential gain / loss
+                        Potential performance
                       </div>
                       <div className="mt-3 text-lg font-semibold">
                         {formatCurrency(potentialGainLow)} –{" "}
@@ -645,7 +643,7 @@ export default function Home() {
 
                     <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                       <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Most valuable bag
+                        Signature piece
                       </div>
                       {mostValuableBag ? (
                         <>
@@ -658,7 +656,7 @@ export default function Home() {
                         </>
                       ) : (
                         <div className="mt-3 text-sm opacity-70">
-                          No bags saved yet.
+                          No pieces saved yet.
                         </div>
                       )}
                     </div>
@@ -681,7 +679,7 @@ export default function Home() {
                         </>
                       ) : (
                         <div className="mt-3 text-sm opacity-70">
-                          No bags saved yet.
+                          No pieces saved yet.
                         </div>
                       )}
                     </div>
@@ -697,7 +695,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr]">
                   <div className="p-8">
                     <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                      Featured piece
+                      Featured archive piece
                     </div>
                     <div className="mt-4 text-3xl font-semibold">
                       {mostValuableBag.brand}
@@ -735,10 +733,10 @@ export default function Home() {
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                    My Collection
+                    Collection Archive
                   </div>
                   <div className="mt-2 text-sm opacity-60">
-                    Private by default
+                    Curated, private, and visible only to you
                   </div>
                 </div>
 
@@ -776,11 +774,11 @@ export default function Home() {
               ) : displayedCollection.length === 0 ? (
                 <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
                   <div className="text-lg font-semibold">
-                    Start building your private luxury archive
+                    Begin your private archive
                   </div>
                   <div className="mt-2 text-sm opacity-70">
-                    Upload your first bag to begin tracking value, purchase
-                    history, and collection performance.
+                    Add your first piece to start tracking value, purchase history,
+                    and collection performance in one place.
                   </div>
                 </div>
               ) : (
@@ -831,14 +829,14 @@ export default function Home() {
                           {bag.purchase_price !== null && (
                             <>
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                                Purchase price
+                                Acquisition cost
                               </div>
                               <div className="mt-2 text-sm font-medium">
                                 {formatCurrency(bag.purchase_price)}
                               </div>
 
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                                Gain / loss potential
+                                Performance potential
                               </div>
                               <div
                                 className={`mt-2 text-sm font-medium ${getPerformanceTone(
@@ -867,7 +865,7 @@ export default function Home() {
                               onClick={() => deleteBag(bag)}
                               className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
                             >
-                              Delete bag
+                              Remove piece
                             </button>
                           </div>
                         </div>
@@ -882,24 +880,24 @@ export default function Home() {
           <div className="space-y-8">
             <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Bag Identification
+                Identify a Piece
               </div>
 
               <h2 className="mt-4 text-3xl font-semibold leading-tight">
-                Add a bag to your
+                Add a new piece to your
                 <br />
-                digital closet
+                private archive
               </h2>
 
               <p className="mt-4 text-[15px] leading-relaxed opacity-75">
-                Upload a handbag photo and Luxelle will suggest the closest
-                match, estimate its value, and let you save it privately.
+                Upload a handbag image and Luxelle will suggest the closest match,
+                estimate a value range, and prepare it for your personal collection.
               </p>
 
               <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                 <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-10 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
                   <div>
-                    <div className="font-medium">Upload a bag photo</div>
+                    <div className="font-medium">Upload a bag image</div>
                     <div className="mt-1 text-xs opacity-60">
                       JPG, PNG, or HEIC
                     </div>
@@ -925,7 +923,7 @@ export default function Home() {
 
               {loading && (
                 <div className="mt-6 rounded-[24px] bg-[#F3EAE1] p-4 text-sm">
-                  Identifying your bag...
+                  Reviewing your piece...
                 </div>
               )}
 
@@ -961,7 +959,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Estimated resale value
+                    Estimated value range
                   </div>
 
                   <div className="mt-2 text-base font-medium">
@@ -970,7 +968,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Purchase price
+                    Acquisition cost
                   </div>
                   <input
                     type="number"
@@ -996,7 +994,7 @@ export default function Home() {
                   </select>
 
                   <div className="mt-5 text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Notes
+                    Personal notes
                   </div>
                   <textarea
                     placeholder="Optional notes"
@@ -1007,7 +1005,7 @@ export default function Home() {
                   />
 
                   <div className="mt-3 text-xs opacity-60">
-                    Early estimate based on brand and model category.
+                    Estimates are directional and designed for collection management.
                   </div>
 
                   <button
@@ -1026,12 +1024,12 @@ export default function Home() {
 
             <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Notes
+                Private by Design
               </div>
               <div className="mt-4 space-y-3 text-sm opacity-70">
-                <p>• Your collection is private to your account.</p>
-                <p>• Value estimates are directional, not final market prices.</p>
-                <p>• Build your private portfolio one piece at a time.</p>
+                <p>• Your archive is visible only to your account.</p>
+                <p>• Value ranges are directional, not final resale offers.</p>
+                <p>• Each piece can be refined over time with notes and acquisition history.</p>
               </div>
             </section>
           </div>

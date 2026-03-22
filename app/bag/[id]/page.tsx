@@ -68,13 +68,13 @@ export default function BagDetailPage() {
     setUserEmail(user?.email ?? null);
 
     if (!user) {
-      setError("You must be logged in.");
+      setError("You must be signed in to view this piece.");
       setLoading(false);
       return;
     }
 
     if (!bagId) {
-      setError("Bag not found.");
+      setError("This piece could not be found.");
       setLoading(false);
       return;
     }
@@ -87,7 +87,7 @@ export default function BagDetailPage() {
       .single();
 
     if (error || !data) {
-      setError("Bag not found.");
+      setError("This piece could not be found.");
       setLoading(false);
       return;
     }
@@ -120,11 +120,11 @@ export default function BagDetailPage() {
       .eq("id", bag.id);
 
     if (error) {
-      setMessage("Could not save changes.");
+      setMessage("Changes could not be saved.");
       return;
     }
 
-    setMessage("Saved.");
+    setMessage("Details updated.");
     setEditing(false);
     await loadBag();
   }
@@ -132,13 +132,13 @@ export default function BagDetailPage() {
   async function deleteBag() {
     if (!bag) return;
 
-    const confirmed = window.confirm("Delete this bag?");
+    const confirmed = window.confirm("Remove this piece from your archive?");
     if (!confirmed) return;
 
     const { error } = await supabase.from("bags").delete().eq("id", bag.id);
 
     if (error) {
-      setMessage("Could not delete bag.");
+      setMessage("This piece could not be removed.");
       return;
     }
 
@@ -178,7 +178,7 @@ export default function BagDetailPage() {
 
         {loading ? (
           <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-            Loading bag...
+            Loading piece...
           </div>
         ) : error ? (
           <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
@@ -196,7 +196,7 @@ export default function BagDetailPage() {
 
             <section className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
               <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Bag Details
+                Piece Details
               </div>
 
               <h1 className="mt-4 text-3xl font-semibold leading-tight">
@@ -230,7 +230,7 @@ export default function BagDetailPage() {
 
                 <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                   <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Purchase price
+                    Acquisition cost
                   </div>
                   <div className="mt-3 text-lg font-semibold">
                     {bag.purchase_price !== null
@@ -241,7 +241,7 @@ export default function BagDetailPage() {
 
                 <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                   <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Added to collection
+                    Added to archive
                   </div>
                   <div className="mt-3 text-lg font-semibold">
                     {formatDate(bag.created_at)}
@@ -252,7 +252,7 @@ export default function BagDetailPage() {
               {bag.purchase_price !== null && (
                 <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                   <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Gain / loss potential
+                    Performance potential
                   </div>
                   <div className="mt-3 text-lg font-semibold">
                     {formatCurrency(gainLow ?? 0)} –{" "}
@@ -263,10 +263,10 @@ export default function BagDetailPage() {
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                 <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                  Notes
+                  Personal notes
                 </div>
                 <div className="mt-3 text-sm opacity-75">
-                  {bag.notes || "No notes added yet."}
+                  {bag.notes || "No notes have been added yet."}
                 </div>
               </div>
 
@@ -284,7 +284,7 @@ export default function BagDetailPage() {
                       onClick={deleteBag}
                       className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 transition hover:bg-[#F8F3EE]"
                     >
-                      Delete bag
+                      Remove piece
                     </button>
                   </div>
                 ) : (
@@ -295,7 +295,7 @@ export default function BagDetailPage() {
 
                     <input
                       type="number"
-                      placeholder="Purchase price"
+                      placeholder="Acquisition cost"
                       value={purchasePrice}
                       onChange={(e) => setPurchasePrice(e.target.value)}
                       className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
@@ -315,7 +315,7 @@ export default function BagDetailPage() {
 
                     <textarea
                       rows={4}
-                      placeholder="Notes"
+                      placeholder="Personal notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
@@ -348,9 +348,7 @@ export default function BagDetailPage() {
                   </div>
                 )}
 
-                {message && (
-                  <div className="mt-3 text-sm opacity-75">{message}</div>
-                )}
+                {message && <div className="mt-3 text-sm opacity-75">{message}</div>}
               </div>
             </section>
           </div>
