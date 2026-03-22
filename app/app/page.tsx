@@ -355,6 +355,9 @@ export default function AppPage() {
   const [collectionLoading, setCollectionLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [conditionFilter, setConditionFilter] = useState("all");
+  const [materialFilter, setMaterialFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [hideOnboarding, setHideOnboarding] = useState(false);
 
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -617,8 +620,24 @@ export default function AppPage() {
   const latestBag = collection.length > 0 ? collection[0] : null;
 
   const brands = useMemo(() => {
-    const uniqueBrands = Array.from(new Set(collection.map((bag) => bag.brand).filter(Boolean)));
+    const uniqueBrands = Array.from(
+      new Set(collection.map((bag) => bag.brand).filter(Boolean))
+    );
     return uniqueBrands.sort((a, b) => a.localeCompare(b));
+  }, [collection]);
+
+  const materials = useMemo(() => {
+    const uniqueMaterials = Array.from(
+      new Set(collection.map((bag) => bag.material).filter(Boolean))
+    ) as string[];
+    return uniqueMaterials.sort((a, b) => a.localeCompare(b));
+  }, [collection]);
+
+  const conditions = useMemo(() => {
+    const uniqueConditions = Array.from(
+      new Set(collection.map((bag) => getConditionLabel(bag)).filter(Boolean))
+    ) as string[];
+    return uniqueConditions.sort((a, b) => a.localeCompare(b));
   }, [collection]);
 
   const displayedCollection = useMemo(() => {
@@ -628,16 +647,38 @@ export default function AppPage() {
       items = items.filter((bag) => bag.brand === brandFilter);
     }
 
+    if (conditionFilter !== "all") {
+      items = items.filter((bag) => getConditionLabel(bag) === conditionFilter);
+    }
+
+    if (materialFilter !== "all") {
+      items = items.filter((bag) => (bag.material || "") === materialFilter);
+    }
+
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      items = items.filter((bag) => {
+        const haystack = [bag.brand, bag.model]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+
     if (sortBy === "highest") {
       items.sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0));
     } else if (sortBy === "brand") {
       items.sort((a, b) => a.brand.localeCompare(b.brand));
     } else {
-      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      items.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     }
 
     return items;
-  }, [collection, brandFilter, sortBy]);
+  }, [collection, brandFilter, conditionFilter, materialFilter, searchQuery, sortBy]);
 
   const showOnboarding = !collectionLoading && collection.length === 0 && !hideOnboarding;
 
@@ -884,38 +925,76 @@ export default function AppPage() {
               transition={{ delay: 0.16, duration: 0.45 }}
               className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                    Collection Archive
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                      Collection Archive
+                    </div>
+                    <div className="mt-2 text-sm opacity-60">
+                      Curated, private, and visible only to you
+                    </div>
                   </div>
-                  <div className="mt-2 text-sm opacity-60">
-                    Curated, private, and visible only to you
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <select
+                      value={brandFilter}
+                      onChange={(e) => setBrandFilter(e.target.value)}
+                      className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                    >
+                      <option value="all">All brands</option>
+                      {brands.map((brand) => (
+                        <option key={brand} value={brand}>
+                          {brand}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="highest">Highest value</option>
+                      <option value="brand">Brand A–Z</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                  <input
+                    type="text"
+                    placeholder="Search brand or model"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white md:col-span-2"
+                  />
+
                   <select
-                    value={brandFilter}
-                    onChange={(e) => setBrandFilter(e.target.value)}
+                    value={conditionFilter}
+                    onChange={(e) => setConditionFilter(e.target.value)}
                     className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
                   >
-                    <option value="all">All brands</option>
-                    {brands.map((brand) => (
-                      <option key={brand} value={brand}>
-                        {brand}
+                    <option value="all">All conditions</option>
+                    {conditions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
                       </option>
                     ))}
                   </select>
 
                   <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    value={materialFilter}
+                    onChange={(e) => setMaterialFilter(e.target.value)}
                     className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
                   >
-                    <option value="newest">Newest</option>
-                    <option value="highest">Highest value</option>
-                    <option value="brand">Brand A–Z</option>
+                    <option value="all">All materials</option>
+                    {materials.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -927,10 +1006,9 @@ export default function AppPage() {
                 </div>
               ) : displayedCollection.length === 0 ? (
                 <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
-                  <div className="text-lg font-semibold">Begin your private archive</div>
+                  <div className="text-lg font-semibold">No pieces match this view</div>
                   <div className="mt-2 text-sm opacity-70">
-                    Add your first piece to start tracking value, purchase history,
-                    and collection performance in one place.
+                    Try clearing or changing your search and filters.
                   </div>
                 </div>
               ) : (
