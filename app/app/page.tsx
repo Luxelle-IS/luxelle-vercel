@@ -234,6 +234,85 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
   );
 }
 
+function OnboardingCard({
+  userEmail,
+  onStart,
+  onSkip,
+}: {
+  userEmail: string | null;
+  onStart: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <motion.section
+      variants={fadeUp}
+      initial="initial"
+      animate="animate"
+      transition={{ delay: 0.08, duration: 0.45 }}
+      className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+    >
+      <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+        Welcome to Luxelle
+      </div>
+
+      <h2 className="mt-4 text-3xl font-semibold leading-tight md:text-4xl">
+        Your private archive
+        <br />
+        starts here.
+      </h2>
+
+      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed opacity-75">
+        {userEmail
+          ? `You’re signed in as ${userEmail}.`
+          : "You’re signed in."} Add your first piece to begin building a refined
+        private archive of your luxury collection.
+      </p>
+
+      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+          <div className="text-sm font-semibold">1. Upload a piece</div>
+          <div className="mt-3 text-sm leading-relaxed opacity-75">
+            Start with a clear handbag image to create your first archive entry.
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+          <div className="text-sm font-semibold">2. Review the match</div>
+          <div className="mt-3 text-sm leading-relaxed opacity-75">
+            Luxelle suggests a likely match and prepares a directional value range.
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+          <div className="text-sm font-semibold">3. Build your archive</div>
+          <div className="mt-3 text-sm leading-relaxed opacity-75">
+            Save acquisition cost, condition, and notes in one private place.
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex flex-wrap gap-3">
+        <motion.button
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onStart}
+          className="rounded-2xl bg-[#2C2A29] px-6 py-3 text-sm text-white transition hover:opacity-90"
+        >
+          Add your first piece
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={onSkip}
+          className="rounded-2xl border border-[#D8C7B8] bg-white px-6 py-3 text-sm transition hover:bg-[#F8F3EE]"
+        >
+          Skip for now
+        </motion.button>
+      </div>
+    </motion.section>
+  );
+}
+
 export default function AppPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -246,10 +325,16 @@ export default function AppPage() {
   const [collectionLoading, setCollectionLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [brandFilter, setBrandFilter] = useState("all");
+  const [hideOnboarding, setHideOnboarding] = useState(false);
 
   const [purchasePrice, setPurchasePrice] = useState("");
   const [condition, setCondition] = useState("Excellent");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    const dismissed = window.localStorage.getItem("luxelle_onboarding_hidden");
+    setHideOnboarding(dismissed === "true");
+  }, []);
 
   function clearCurrentBagState() {
     setResult(null);
@@ -430,6 +515,8 @@ export default function AppPage() {
         return;
       }
 
+      window.localStorage.setItem("luxelle_onboarding_hidden", "true");
+      setHideOnboarding(true);
       setSaveMessage("Saved to your private collection.");
       loadCollection();
     } catch (err: any) {
@@ -504,6 +591,8 @@ export default function AppPage() {
     return items;
   }, [collection, brandFilter, sortBy]);
 
+  const showOnboarding = !collectionLoading && collection.length === 0 && !hideOnboarding;
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -577,6 +666,22 @@ export default function AppPage() {
               }}
             />
           </motion.div>
+        )}
+
+        {showOnboarding && (
+          <div className="mb-8">
+            <OnboardingCard
+              userEmail={userEmail}
+              onStart={() => {
+                const el = document.getElementById("upload-panel");
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              onSkip={() => {
+                window.localStorage.setItem("luxelle_onboarding_hidden", "true");
+                setHideOnboarding(true);
+              }}
+            />
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr]">
@@ -873,6 +978,7 @@ export default function AppPage() {
 
           <div className="space-y-8">
             <motion.section
+              id="upload-panel"
               variants={fadeUp}
               initial="initial"
               animate="animate"
