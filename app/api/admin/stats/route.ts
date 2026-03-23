@@ -6,6 +6,13 @@ type BrandCount = {
   count: number;
 };
 
+type ActivityItem = {
+  type: "bag" | "wishlist";
+  date: string;
+  brand: string;
+  model: string;
+};
+
 function getDateKey(dateString: string) {
   return new Date(dateString).toISOString().slice(0, 10);
 }
@@ -63,12 +70,24 @@ export async function GET() {
 
     const { data: bagsData, error: bagsDataError } = await admin
       .from("bags")
-      .select("brand, created_at")
+      .select("brand, model, created_at")
       .order("created_at", { ascending: false });
 
     if (bagsDataError) {
       return NextResponse.json(
         { error: bagsDataError.message },
+        { status: 500 }
+      );
+    }
+
+    const { data: wishlistData, error: wishlistDataError } = await admin
+      .from("wishlist_items")
+      .select("brand, model, created_at")
+      .order("created_at", { ascending: false });
+
+    if (wishlistDataError) {
+      return NextResponse.json(
+        { error: wishlistDataError.message },
         { status: 500 }
       );
     }
@@ -94,12 +113,39 @@ export async function GET() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-14);
 
+    const activity: ActivityItem[] = [];
+
+    for (const bag of bagsData || []) {
+      activity.push({
+        type: "bag",
+        date: bag.created_at,
+        brand: bag.brand || "Unknown",
+        model: bag.model || "Unknown",
+      });
+    }
+
+    for (const item of wishlistData || []) {
+      activity.push({
+        type: "wishlist",
+        date: item.created_at,
+        brand: item.brand || "Unknown",
+        model: item.model || "Unknown",
+      });
+    }
+
+    activity.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const recentActivity = activity.slice(0, 20);
+
     return NextResponse.json({
       totalUsers: usersData.users.length,
       totalArchivePieces: bagsCount || 0,
       totalWishlistItems: wishlistCount || 0,
       topBrands,
       savesPerDay,
+      recentActivity,
     });
   } catch (error: any) {
     return NextResponse.json(
