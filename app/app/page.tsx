@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import AuthCard from "../../components/AuthCard";
@@ -59,6 +59,116 @@ const fadeUp = {
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
 };
+
+const BRAND_MODEL_CATALOG: Record<string, string[]> = {
+  "Louis Vuitton": [
+    "Speedy",
+    "Neverfull",
+    "Alma",
+    "Capucines",
+    "Pochette Métis",
+    "Twist",
+    "Petite Malle",
+    "Keepall",
+    "Noé",
+    "Loop",
+  ],
+  Chanel: [
+    "Classic Flap",
+    "Boy Bag",
+    "2.55 Reissue",
+    "Gabrielle",
+    "Coco Handle",
+    "19 Bag",
+    "Wallet on Chain",
+  ],
+  "Hermès": [
+    "Birkin",
+    "Kelly",
+    "Constance",
+    "Evelyne",
+    "Picotin",
+    "Lindy",
+    "Garden Party",
+    "Bolide",
+  ],
+  Dior: [
+    "Lady Dior",
+    "Saddle",
+    "Book Tote",
+    "Bobby",
+    "Dior Caro",
+    "30 Montaigne",
+  ],
+  Gucci: [
+    "Jackie",
+    "Dionysus",
+    "Marmont",
+    "Horsebit 1955",
+    "Bamboo 1947",
+    "Ophidia",
+  ],
+  Prada: [
+    "Galleria",
+    "Re-Edition 2000",
+    "Re-Edition 2005",
+    "Cleo",
+    "Cahier",
+    "Symbole",
+  ],
+  Celine: [
+    "Luggage",
+    "Triomphe",
+    "Belt Bag",
+    "16",
+    "Ava",
+    "Classique Triomphe",
+  ],
+  "Saint Laurent": [
+    "Sac de Jour",
+    "LouLou",
+    "Kate",
+    "Le 5 à 7",
+    "Niki",
+    "Sunset",
+  ],
+  "Bottega Veneta": [
+    "Jodie",
+    "Cassette",
+    "Sardine",
+    "Andiamo",
+    "Arco",
+    "Knot",
+  ],
+  Fendi: [
+    "Baguette",
+    "Peekaboo",
+    "First",
+    "Sunshine Shopper",
+  ],
+  Loewe: [
+    "Puzzle",
+    "Hammock",
+    "Flamenco",
+    "Gate",
+    "Amazona",
+  ],
+  Balenciaga: [
+    "City",
+    "Le Cagole",
+    "Hourglass",
+    "Neo Classic",
+  ],
+  Valextra: [
+    "Iside",
+    "Brera",
+    "Tric Trac",
+  ],
+};
+
+const ALL_BRANDS = Object.keys(BRAND_MODEL_CATALOG).sort((a, b) =>
+  a.localeCompare(b)
+);
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -141,6 +251,43 @@ function getPerformanceTone(value: number | null) {
   return "text-[#2C2A29]";
 }
 
+function normalizeBrandInput(input: string) {
+  const trimmed = input.trim().toLowerCase();
+  const exact = ALL_BRANDS.find((brand) => brand.toLowerCase() === trimmed);
+  return exact || input.trim();
+}
+
+function getBrandSuggestions(query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return ALL_BRANDS.slice(0, 8);
+
+  const starts = ALL_BRANDS.filter((brand) =>
+    brand.toLowerCase().startsWith(q)
+  );
+  const contains = ALL_BRANDS.filter(
+    (brand) =>
+      !brand.toLowerCase().startsWith(q) && brand.toLowerCase().includes(q)
+  );
+
+  return [...starts, ...contains].slice(0, 8);
+}
+
+function getModelSuggestions(brandInput: string, modelQuery: string) {
+  const normalizedBrand = normalizeBrandInput(brandInput);
+  const models = BRAND_MODEL_CATALOG[normalizedBrand] || [];
+  const q = modelQuery.trim().toLowerCase();
+
+  if (!q) return models.slice(0, 8);
+
+  const starts = models.filter((model) => model.toLowerCase().startsWith(q));
+  const contains = models.filter(
+    (model) =>
+      !model.toLowerCase().startsWith(q) && model.toLowerCase().includes(q)
+  );
+
+  return [...starts, ...contains].slice(0, 8);
+}
+
 async function compressImage(file: File): Promise<Blob> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -188,6 +335,31 @@ function LoadingCard() {
       <div className="mt-6 h-4 w-1/4 rounded bg-[#EFE6DC]" />
       <div className="mt-3 h-4 w-2/3 rounded bg-[#EFE6DC]" />
       <div className="mt-5 h-10 rounded-2xl bg-[#EFE6DC]" />
+    </div>
+  );
+}
+
+function SuggestionDropdown({
+  items,
+  onSelect,
+}: {
+  items: string[];
+  onSelect: (value: string) => void;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#E7DDD3] bg-white shadow-lg">
+      {items.map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onSelect(item)}
+          className="block w-full border-b border-[#F1E8DE] px-4 py-3 text-left text-sm transition last:border-b-0 hover:bg-[#FAF5EF]"
+        >
+          {item}
+        </button>
+      ))}
     </div>
   );
 }
@@ -398,6 +570,9 @@ export default function AppPage() {
   const [wishNotes, setWishNotes] = useState("");
   const [wishMessage, setWishMessage] = useState("");
 
+  const [showWishBrandSuggestions, setShowWishBrandSuggestions] = useState(false);
+  const [showWishModelSuggestions, setShowWishModelSuggestions] = useState(false);
+
   const [editingWishId, setEditingWishId] = useState<number | null>(null);
   const [editWishBrand, setEditWishBrand] = useState("");
   const [editWishModel, setEditWishModel] = useState("");
@@ -409,10 +584,76 @@ export default function AppPage() {
   const [editWishSize, setEditWishSize] = useState("");
   const [editWishNotes, setEditWishNotes] = useState("");
   const [editWishMessage, setEditWishMessage] = useState("");
+  const [showEditWishBrandSuggestions, setShowEditWishBrandSuggestions] =
+    useState(false);
+  const [showEditWishModelSuggestions, setShowEditWishModelSuggestions] =
+    useState(false);
+
+  const addWishBrandWrapRef = useRef<HTMLDivElement | null>(null);
+  const addWishModelWrapRef = useRef<HTMLDivElement | null>(null);
+  const editWishBrandWrapRef = useRef<HTMLDivElement | null>(null);
+  const editWishModelWrapRef = useRef<HTMLDivElement | null>(null);
+
+  const wishBrandSuggestions = useMemo(
+    () => getBrandSuggestions(wishBrand),
+    [wishBrand]
+  );
+
+  const wishModelSuggestions = useMemo(
+    () => getModelSuggestions(wishBrand, wishModel),
+    [wishBrand, wishModel]
+  );
+
+  const editWishBrandSuggestions = useMemo(
+    () => getBrandSuggestions(editWishBrand),
+    [editWishBrand]
+  );
+
+  const editWishModelSuggestions = useMemo(
+    () => getModelSuggestions(editWishBrand, editWishModel),
+    [editWishBrand, editWishModel]
+  );
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem("luxelle_onboarding_hidden");
     setHideOnboarding(dismissed === "true");
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        addWishBrandWrapRef.current &&
+        !addWishBrandWrapRef.current.contains(target)
+      ) {
+        setShowWishBrandSuggestions(false);
+      }
+
+      if (
+        addWishModelWrapRef.current &&
+        !addWishModelWrapRef.current.contains(target)
+      ) {
+        setShowWishModelSuggestions(false);
+      }
+
+      if (
+        editWishBrandWrapRef.current &&
+        !editWishBrandWrapRef.current.contains(target)
+      ) {
+        setShowEditWishBrandSuggestions(false);
+      }
+
+      if (
+        editWishModelWrapRef.current &&
+        !editWishModelWrapRef.current.contains(target)
+      ) {
+        setShowEditWishModelSuggestions(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   function clearCurrentBagState() {
@@ -444,6 +685,8 @@ export default function AppPage() {
     setWishSize("");
     setWishNotes("");
     setWishMessage("");
+    setShowWishBrandSuggestions(false);
+    setShowWishModelSuggestions(false);
   }
 
   function startEditingWishlist(item: WishlistItem) {
@@ -462,6 +705,8 @@ export default function AppPage() {
     setEditWishSize(item.size || "");
     setEditWishNotes(item.notes || "");
     setEditWishMessage("");
+    setShowEditWishBrandSuggestions(false);
+    setShowEditWishModelSuggestions(false);
   }
 
   function cancelEditingWishlist() {
@@ -476,6 +721,8 @@ export default function AppPage() {
     setEditWishSize("");
     setEditWishNotes("");
     setEditWishMessage("");
+    setShowEditWishBrandSuggestions(false);
+    setShowEditWishModelSuggestions(false);
   }
 
   async function loadUser() {
@@ -712,10 +959,12 @@ export default function AppPage() {
       return;
     }
 
+    const normalizedBrand = normalizeBrandInput(wishBrand);
+
     const { error } = await supabase.from("wishlist_items").insert([
       {
         user_id: user.id,
-        brand: wishBrand.trim(),
+        brand: normalizedBrand,
         model: wishModel.trim(),
         target_price: wishTargetPrice ? Number(wishTargetPrice) : null,
         currency: wishCurrency || "USD",
@@ -732,8 +981,8 @@ export default function AppPage() {
       return;
     }
 
-    setWishMessage("Saved to your wishlist.");
     clearWishlistForm();
+    setWishMessage("Saved to your wishlist.");
     loadWishlist();
   }
 
@@ -745,10 +994,12 @@ export default function AppPage() {
       return;
     }
 
+    const normalizedBrand = normalizeBrandInput(editWishBrand);
+
     const { error } = await supabase
       .from("wishlist_items")
       .update({
-        brand: editWishBrand.trim(),
+        brand: normalizedBrand,
         model: editWishModel.trim(),
         target_price: editWishTargetPrice ? Number(editWishTargetPrice) : null,
         currency: editWishCurrency || "USD",
@@ -1368,21 +1619,53 @@ export default function AppPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <input
-                  type="text"
-                  placeholder="Brand"
-                  value={wishBrand}
-                  onChange={(e) => setWishBrand(e.target.value)}
-                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
-                />
+                <div ref={addWishBrandWrapRef} className="relative">
+                  <input
+                    type="text"
+                    placeholder="Brand"
+                    value={wishBrand}
+                    onFocus={() => setShowWishBrandSuggestions(true)}
+                    onChange={(e) => {
+                      setWishBrand(e.target.value);
+                      setShowWishBrandSuggestions(true);
+                    }}
+                    className="w-full rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                  />
+                  {showWishBrandSuggestions && (
+                    <SuggestionDropdown
+                      items={wishBrandSuggestions}
+                      onSelect={(value) => {
+                        setWishBrand(value);
+                        setShowWishBrandSuggestions(false);
+                        setWishModel("");
+                        setShowWishModelSuggestions(true);
+                      }}
+                    />
+                  )}
+                </div>
 
-                <input
-                  type="text"
-                  placeholder="Model"
-                  value={wishModel}
-                  onChange={(e) => setWishModel(e.target.value)}
-                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
-                />
+                <div ref={addWishModelWrapRef} className="relative">
+                  <input
+                    type="text"
+                    placeholder="Model"
+                    value={wishModel}
+                    onFocus={() => setShowWishModelSuggestions(true)}
+                    onChange={(e) => {
+                      setWishModel(e.target.value);
+                      setShowWishModelSuggestions(true);
+                    }}
+                    className="w-full rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                  />
+                  {showWishModelSuggestions && (
+                    <SuggestionDropdown
+                      items={wishModelSuggestions}
+                      onSelect={(value) => {
+                        setWishModel(value);
+                        setShowWishModelSuggestions(false);
+                      }}
+                    />
+                  )}
+                </div>
 
                 <input
                   type="number"
@@ -1486,21 +1769,53 @@ export default function AppPage() {
                       {editingWishId === item.id ? (
                         <>
                           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <input
-                              type="text"
-                              placeholder="Brand"
-                              value={editWishBrand}
-                              onChange={(e) => setEditWishBrand(e.target.value)}
-                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                            />
+                            <div ref={editWishBrandWrapRef} className="relative">
+                              <input
+                                type="text"
+                                placeholder="Brand"
+                                value={editWishBrand}
+                                onFocus={() => setShowEditWishBrandSuggestions(true)}
+                                onChange={(e) => {
+                                  setEditWishBrand(e.target.value);
+                                  setShowEditWishBrandSuggestions(true);
+                                }}
+                                className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                              />
+                              {showEditWishBrandSuggestions && (
+                                <SuggestionDropdown
+                                  items={editWishBrandSuggestions}
+                                  onSelect={(value) => {
+                                    setEditWishBrand(value);
+                                    setShowEditWishBrandSuggestions(false);
+                                    setEditWishModel("");
+                                    setShowEditWishModelSuggestions(true);
+                                  }}
+                                />
+                              )}
+                            </div>
 
-                            <input
-                              type="text"
-                              placeholder="Model"
-                              value={editWishModel}
-                              onChange={(e) => setEditWishModel(e.target.value)}
-                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                            />
+                            <div ref={editWishModelWrapRef} className="relative">
+                              <input
+                                type="text"
+                                placeholder="Model"
+                                value={editWishModel}
+                                onFocus={() => setShowEditWishModelSuggestions(true)}
+                                onChange={(e) => {
+                                  setEditWishModel(e.target.value);
+                                  setShowEditWishModelSuggestions(true);
+                                }}
+                                className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                              />
+                              {showEditWishModelSuggestions && (
+                                <SuggestionDropdown
+                                  items={editWishModelSuggestions}
+                                  onSelect={(value) => {
+                                    setEditWishModel(value);
+                                    setShowEditWishModelSuggestions(false);
+                                  }}
+                                />
+                              )}
+                            </div>
 
                             <input
                               type="number"
