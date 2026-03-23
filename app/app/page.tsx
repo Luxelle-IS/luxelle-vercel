@@ -140,30 +140,10 @@ const BRAND_MODEL_CATALOG: Record<string, string[]> = {
     "Arco",
     "Knot",
   ],
-  Fendi: [
-    "Baguette",
-    "Peekaboo",
-    "First",
-    "Sunshine Shopper",
-  ],
-  Loewe: [
-    "Puzzle",
-    "Hammock",
-    "Flamenco",
-    "Gate",
-    "Amazona",
-  ],
-  Balenciaga: [
-    "City",
-    "Le Cagole",
-    "Hourglass",
-    "Neo Classic",
-  ],
-  Valextra: [
-    "Iside",
-    "Brera",
-    "Tric Trac",
-  ],
+  Fendi: ["Baguette", "Peekaboo", "First", "Sunshine Shopper"],
+  Loewe: ["Puzzle", "Hammock", "Flamenco", "Gate", "Amazona"],
+  Balenciaga: ["City", "Le Cagole", "Hourglass", "Neo Classic"],
+  Valextra: ["Iside", "Brera", "Tric Trac"],
 };
 
 const ALL_BRANDS = Object.keys(BRAND_MODEL_CATALOG).sort((a, b) =>
@@ -548,6 +528,10 @@ export default function AppPage() {
   const [materialFilter, setMaterialFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [hideOnboarding, setHideOnboarding] = useState(false);
+  const [archiveSourceMessage, setArchiveSourceMessage] = useState("");
+  const [activeWishForArchive, setActiveWishForArchive] = useState<number | null>(
+    null
+  );
 
   const [purchasePrice, setPurchasePrice] = useState("");
   const [purchasePriceCurrency, setPurchasePriceCurrency] = useState("USD");
@@ -672,6 +656,8 @@ export default function AppPage() {
     setMaterial("");
     setSize("");
     setProvenanceNotes("");
+    setArchiveSourceMessage("");
+    setActiveWishForArchive(null);
   }
 
   function clearWishlistForm() {
@@ -723,6 +709,28 @@ export default function AppPage() {
     setEditWishMessage("");
     setShowEditWishBrandSuggestions(false);
     setShowEditWishModelSuggestions(false);
+  }
+
+  function startArchiveFromWishlist(item: WishlistItem) {
+    clearCurrentBagState();
+    setPurchasePrice(
+      item.target_price !== null && item.target_price !== undefined
+        ? String(item.target_price)
+        : ""
+    );
+    setPurchasePriceCurrency(item.currency || "USD");
+    setCondition(item.desired_condition || "Excellent");
+    setColor(item.color || "");
+    setMaterial(item.material || "");
+    setSize(item.size || "");
+    setNotes(item.notes || "");
+    setArchiveSourceMessage(
+      `Archive starter loaded from wishlist: ${item.brand} ${item.model}. Upload an image to continue.`
+    );
+    setActiveWishForArchive(item.id);
+
+    const uploadEl = document.getElementById("upload-panel");
+    uploadEl?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function loadUser() {
@@ -854,6 +862,12 @@ export default function AppPage() {
         }
 
         setResult(data);
+
+        if (activeWishForArchive) {
+          setArchiveSourceMessage(
+            `Archive starter loaded from wishlist. AI suggested ${data.brand} ${data.model}.`
+          );
+        }
       } catch (err: any) {
         setError(err?.message || "Something went wrong.");
       } finally {
@@ -933,6 +947,8 @@ export default function AppPage() {
       window.localStorage.setItem("luxelle_onboarding_hidden", "true");
       setHideOnboarding(true);
       setSaveMessage("Saved to your private collection.");
+      setArchiveSourceMessage("");
+      setActiveWishForArchive(null);
       loadCollection();
     } catch (err: any) {
       setSaveMessage(err?.message || "The image could not be uploaded.");
@@ -1033,6 +1049,11 @@ export default function AppPage() {
     if (error) {
       alert("Could not delete wishlist item.");
       return;
+    }
+
+    if (activeWishForArchive === item.id) {
+      setActiveWishForArchive(null);
+      setArchiveSourceMessage("");
     }
 
     loadWishlist();
@@ -1764,7 +1785,11 @@ export default function AppPage() {
                   {wishlist.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 shadow-sm"
+                      className={`rounded-[28px] border bg-[#FCF8F4] p-6 shadow-sm ${
+                        activeWishForArchive === item.id
+                          ? "border-[#BFA58B] ring-1 ring-[#D8C7B8]"
+                          : "border-[#E7DDD3]"
+                      }`}
                     >
                       {editingWishId === item.id ? (
                         <>
@@ -1922,6 +1947,12 @@ export default function AppPage() {
                             )}
                           </div>
 
+                          {activeWishForArchive === item.id && (
+                            <div className="mt-4 rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm opacity-80">
+                              Loaded into archive form below.
+                            </div>
+                          )}
+
                           {item.target_price !== null && (
                             <>
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
@@ -1964,7 +1995,14 @@ export default function AppPage() {
                             Added {formatDate(item.created_at)}
                           </div>
 
-                          <div className="mt-5 grid grid-cols-2 gap-3">
+                          <div className="mt-5 grid grid-cols-3 gap-3">
+                            <button
+                              onClick={() => startArchiveFromWishlist(item)}
+                              className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white transition hover:opacity-90"
+                            >
+                              Start archive
+                            </button>
+
                             <button
                               onClick={() => startEditingWishlist(item)}
                               className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
@@ -2011,6 +2049,12 @@ export default function AppPage() {
                 Upload a handbag image and Luxelle will suggest the closest match,
                 estimate a value range, and prepare it for your personal collection.
               </p>
+
+              {archiveSourceMessage && (
+                <div className="mt-6 rounded-[24px] border border-[#D8C7B8] bg-[#FCF8F4] p-4 text-sm opacity-80">
+                  {archiveSourceMessage}
+                </div>
+              )}
 
               <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                 <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-10 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
