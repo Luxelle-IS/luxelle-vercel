@@ -38,6 +38,21 @@ type SavedBag = {
   provenance_notes: string | null;
 };
 
+type WishlistItem = {
+  id: number;
+  created_at: string;
+  user_id: string | null;
+  brand: string;
+  model: string;
+  target_price: number | null;
+  currency: string | null;
+  desired_condition: string | null;
+  color: string | null;
+  material: string | null;
+  size: string | null;
+  notes: string | null;
+};
+
 type SortOption = "newest" | "highest" | "brand";
 
 const fadeUp = {
@@ -352,7 +367,9 @@ export default function AppPage() {
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [collection, setCollection] = useState<SavedBag[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [collectionLoading, setCollectionLoading] = useState(true);
+  const [wishlistLoading, setWishlistLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [brandFilter, setBrandFilter] = useState("all");
   const [conditionFilter, setConditionFilter] = useState("all");
@@ -369,6 +386,29 @@ export default function AppPage() {
   const [material, setMaterial] = useState("");
   const [size, setSize] = useState("");
   const [provenanceNotes, setProvenanceNotes] = useState("");
+
+  const [wishBrand, setWishBrand] = useState("");
+  const [wishModel, setWishModel] = useState("");
+  const [wishTargetPrice, setWishTargetPrice] = useState("");
+  const [wishCurrency, setWishCurrency] = useState("USD");
+  const [wishCondition, setWishCondition] = useState("Excellent");
+  const [wishColor, setWishColor] = useState("");
+  const [wishMaterial, setWishMaterial] = useState("");
+  const [wishSize, setWishSize] = useState("");
+  const [wishNotes, setWishNotes] = useState("");
+  const [wishMessage, setWishMessage] = useState("");
+
+  const [editingWishId, setEditingWishId] = useState<number | null>(null);
+  const [editWishBrand, setEditWishBrand] = useState("");
+  const [editWishModel, setEditWishModel] = useState("");
+  const [editWishTargetPrice, setEditWishTargetPrice] = useState("");
+  const [editWishCurrency, setEditWishCurrency] = useState("USD");
+  const [editWishCondition, setEditWishCondition] = useState("Excellent");
+  const [editWishColor, setEditWishColor] = useState("");
+  const [editWishMaterial, setEditWishMaterial] = useState("");
+  const [editWishSize, setEditWishSize] = useState("");
+  const [editWishNotes, setEditWishNotes] = useState("");
+  const [editWishMessage, setEditWishMessage] = useState("");
 
   useEffect(() => {
     const dismissed = window.localStorage.getItem("luxelle_onboarding_hidden");
@@ -391,6 +431,51 @@ export default function AppPage() {
     setMaterial("");
     setSize("");
     setProvenanceNotes("");
+  }
+
+  function clearWishlistForm() {
+    setWishBrand("");
+    setWishModel("");
+    setWishTargetPrice("");
+    setWishCurrency("USD");
+    setWishCondition("Excellent");
+    setWishColor("");
+    setWishMaterial("");
+    setWishSize("");
+    setWishNotes("");
+    setWishMessage("");
+  }
+
+  function startEditingWishlist(item: WishlistItem) {
+    setEditingWishId(item.id);
+    setEditWishBrand(item.brand || "");
+    setEditWishModel(item.model || "");
+    setEditWishTargetPrice(
+      item.target_price !== null && item.target_price !== undefined
+        ? String(item.target_price)
+        : ""
+    );
+    setEditWishCurrency(item.currency || "USD");
+    setEditWishCondition(item.desired_condition || "Excellent");
+    setEditWishColor(item.color || "");
+    setEditWishMaterial(item.material || "");
+    setEditWishSize(item.size || "");
+    setEditWishNotes(item.notes || "");
+    setEditWishMessage("");
+  }
+
+  function cancelEditingWishlist() {
+    setEditingWishId(null);
+    setEditWishBrand("");
+    setEditWishModel("");
+    setEditWishTargetPrice("");
+    setEditWishCurrency("USD");
+    setEditWishCondition("Excellent");
+    setEditWishColor("");
+    setEditWishMaterial("");
+    setEditWishSize("");
+    setEditWishNotes("");
+    setEditWishMessage("");
   }
 
   async function loadUser() {
@@ -430,16 +515,48 @@ export default function AppPage() {
     setCollectionLoading(false);
   }
 
+  async function loadWishlist() {
+    setWishlistLoading(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setWishlist([]);
+      setWishlistLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("wishlist_items")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setWishlist(data);
+    } else {
+      setWishlist([]);
+    }
+
+    setWishlistLoading(false);
+  }
+
   useEffect(() => {
     loadUser();
     loadCollection();
+    loadWishlist();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
       clearCurrentBagState();
+      clearWishlistForm();
+      cancelEditingWishlist();
       loadUser();
       loadCollection();
+      loadWishlist();
     });
 
     return () => {
@@ -575,6 +692,101 @@ export default function AppPage() {
     }
   }
 
+  async function addWishlistItem() {
+    setWishMessage("");
+
+    if (!wishBrand.trim() || !wishModel.trim()) {
+      setWishMessage("Brand and model are required.");
+      return;
+    }
+
+    const {
+      data,
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    const user = data?.user;
+
+    if (userError || !user || !user.id) {
+      setWishMessage("Please log out and back in before saving.");
+      return;
+    }
+
+    const { error } = await supabase.from("wishlist_items").insert([
+      {
+        user_id: user.id,
+        brand: wishBrand.trim(),
+        model: wishModel.trim(),
+        target_price: wishTargetPrice ? Number(wishTargetPrice) : null,
+        currency: wishCurrency || "USD",
+        desired_condition: wishCondition || null,
+        color: wishColor.trim() || null,
+        material: wishMaterial.trim() || null,
+        size: wishSize.trim() || null,
+        notes: wishNotes.trim() || null,
+      },
+    ]);
+
+    if (error) {
+      setWishMessage(error.message || "Could not save wishlist item.");
+      return;
+    }
+
+    setWishMessage("Saved to your wishlist.");
+    clearWishlistForm();
+    loadWishlist();
+  }
+
+  async function saveWishlistEdits(itemId: number) {
+    setEditWishMessage("");
+
+    if (!editWishBrand.trim() || !editWishModel.trim()) {
+      setEditWishMessage("Brand and model are required.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("wishlist_items")
+      .update({
+        brand: editWishBrand.trim(),
+        model: editWishModel.trim(),
+        target_price: editWishTargetPrice ? Number(editWishTargetPrice) : null,
+        currency: editWishCurrency || "USD",
+        desired_condition: editWishCondition || null,
+        color: editWishColor.trim() || null,
+        material: editWishMaterial.trim() || null,
+        size: editWishSize.trim() || null,
+        notes: editWishNotes.trim() || null,
+      })
+      .eq("id", itemId);
+
+    if (error) {
+      setEditWishMessage("Could not save changes.");
+      return;
+    }
+
+    setEditWishMessage("Saved.");
+    await loadWishlist();
+    setEditingWishId(null);
+  }
+
+  async function deleteWishlistItem(item: WishlistItem) {
+    const confirmed = window.confirm("Delete this wishlist item?");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("wishlist_items")
+      .delete()
+      .eq("id", item.id);
+
+    if (error) {
+      alert("Could not delete wishlist item.");
+      return;
+    }
+
+    loadWishlist();
+  }
+
   async function deleteBag(bag: SavedBag) {
     const confirmed = window.confirm("Remove this bag from your collection?");
     if (!confirmed) return;
@@ -599,7 +811,10 @@ export default function AppPage() {
     await supabase.auth.signOut();
     setUserEmail(null);
     setCollection([]);
+    setWishlist([]);
     clearCurrentBagState();
+    clearWishlistForm();
+    cancelEditingWishlist();
   }
 
   const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
@@ -750,8 +965,11 @@ export default function AppPage() {
             <AuthCard
               onAuthSuccess={() => {
                 clearCurrentBagState();
+                clearWishlistForm();
+                cancelEditingWishlist();
                 loadUser();
                 loadCollection();
+                loadWishlist();
               }}
             />
           </motion.div>
@@ -1124,6 +1342,332 @@ export default function AppPage() {
                       </motion.div>
                     );
                   })}
+                </div>
+              )}
+            </motion.section>
+
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.18, duration: 0.45 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+                    Wishlist / Watchlist
+                  </div>
+                  <div className="mt-2 text-sm opacity-60">
+                    Pieces you want to find, acquire, or track
+                  </div>
+                </div>
+                <div className="text-sm opacity-60">
+                  {wishlist.length} item{wishlist.length === 1 ? "" : "s"}
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <input
+                  type="text"
+                  placeholder="Brand"
+                  value={wishBrand}
+                  onChange={(e) => setWishBrand(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Model"
+                  value={wishModel}
+                  onChange={(e) => setWishModel(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <input
+                  type="number"
+                  placeholder="Target price"
+                  value={wishTargetPrice}
+                  onChange={(e) => setWishTargetPrice(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <select
+                  value={wishCurrency}
+                  onChange={(e) => setWishCurrency(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="CHF">CHF</option>
+                  <option value="AED">AED</option>
+                </select>
+
+                <select
+                  value={wishCondition}
+                  onChange={(e) => setWishCondition(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                >
+                  <option>Excellent</option>
+                  <option>Very good</option>
+                  <option>Good</option>
+                  <option>Fair</option>
+                  <option>Collector piece</option>
+                </select>
+
+                <input
+                  type="text"
+                  placeholder="Color"
+                  value={wishColor}
+                  onChange={(e) => setWishColor(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Material"
+                  value={wishMaterial}
+                  onChange={(e) => setWishMaterial(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Size"
+                  value={wishSize}
+                  onChange={(e) => setWishSize(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                />
+
+                <textarea
+                  placeholder="Notes"
+                  value={wishNotes}
+                  onChange={(e) => setWishNotes(e.target.value)}
+                  rows={3}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none md:col-span-2"
+                />
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <motion.button
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={addWishlistItem}
+                  className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+                >
+                  Add to wishlist
+                </motion.button>
+              </div>
+
+              {wishMessage && (
+                <div className="mt-3 text-sm opacity-75">{wishMessage}</div>
+              )}
+
+              {wishlistLoading ? (
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <LoadingCard />
+                  <LoadingCard />
+                </div>
+              ) : wishlist.length === 0 ? (
+                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
+                  <div className="text-lg font-semibold">Your wishlist is empty</div>
+                  <div className="mt-2 text-sm opacity-70">
+                    Add pieces you want to hunt, compare, or remember for later.
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {wishlist.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 shadow-sm"
+                    >
+                      {editingWishId === item.id ? (
+                        <>
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <input
+                              type="text"
+                              placeholder="Brand"
+                              value={editWishBrand}
+                              onChange={(e) => setEditWishBrand(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <input
+                              type="text"
+                              placeholder="Model"
+                              value={editWishModel}
+                              onChange={(e) => setEditWishModel(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <input
+                              type="number"
+                              placeholder="Target price"
+                              value={editWishTargetPrice}
+                              onChange={(e) => setEditWishTargetPrice(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <select
+                              value={editWishCurrency}
+                              onChange={(e) => setEditWishCurrency(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            >
+                              <option value="USD">USD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="GBP">GBP</option>
+                              <option value="CHF">CHF</option>
+                              <option value="AED">AED</option>
+                            </select>
+
+                            <select
+                              value={editWishCondition}
+                              onChange={(e) => setEditWishCondition(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            >
+                              <option>Excellent</option>
+                              <option>Very good</option>
+                              <option>Good</option>
+                              <option>Fair</option>
+                              <option>Collector piece</option>
+                            </select>
+
+                            <input
+                              type="text"
+                              placeholder="Color"
+                              value={editWishColor}
+                              onChange={(e) => setEditWishColor(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <input
+                              type="text"
+                              placeholder="Material"
+                              value={editWishMaterial}
+                              onChange={(e) => setEditWishMaterial(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <input
+                              type="text"
+                              placeholder="Size"
+                              value={editWishSize}
+                              onChange={(e) => setEditWishSize(e.target.value)}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                            />
+
+                            <textarea
+                              placeholder="Notes"
+                              value={editWishNotes}
+                              onChange={(e) => setEditWishNotes(e.target.value)}
+                              rows={3}
+                              className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none md:col-span-2"
+                            />
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => saveWishlistEdits(item.id)}
+                              className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-sm text-white"
+                            >
+                              Save changes
+                            </button>
+                            <button
+                              onClick={cancelEditingWishlist}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+
+                          {editWishMessage && (
+                            <div className="mt-3 text-sm opacity-75">
+                              {editWishMessage}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold">
+                                {item.brand}
+                              </div>
+                              <div className="text-base opacity-70">
+                                {item.model}
+                              </div>
+                            </div>
+
+                            {item.desired_condition && (
+                              <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
+                                {item.desired_condition}
+                              </div>
+                            )}
+                          </div>
+
+                          {item.target_price !== null && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Target price
+                              </div>
+                              <div className="mt-2 text-sm font-medium">
+                                {formatMoneyWithCurrency(
+                                  item.target_price,
+                                  item.currency
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {(item.color || item.material || item.size) && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Desired details
+                              </div>
+                              <div className="mt-2 text-sm opacity-75">
+                                {[item.color, item.material, item.size]
+                                  .filter(Boolean)
+                                  .join(" • ")}
+                              </div>
+                            </>
+                          )}
+
+                          {item.notes && (
+                            <>
+                              <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                                Notes
+                              </div>
+                              <div className="mt-2 text-sm opacity-75">
+                                {item.notes}
+                              </div>
+                            </>
+                          )}
+
+                          <div className="mt-4 text-xs opacity-55">
+                            Added {formatDate(item.created_at)}
+                          </div>
+
+                          <div className="mt-5 grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => startEditingWishlist(item)}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                            >
+                              Edit wish
+                            </button>
+
+                            <button
+                              onClick={() => deleteWishlistItem(item)}
+                              className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+                            >
+                              Delete wish
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </motion.section>
