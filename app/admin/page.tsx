@@ -17,6 +17,15 @@ type AdminStats = {
     brand: string;
     model: string;
   }[];
+  userGrowth: { date: string; count: number }[];
+  funnel: {
+    totalUsers: number;
+    usersWithWishlist: number;
+    usersWithArchive: number;
+    usersToWishlistPct: number;
+    usersToArchivePct: number;
+    wishlistToArchivePct: number;
+  };
 };
 
 const fadeUp = {
@@ -31,15 +40,19 @@ function formatDate(dateString: string) {
   }).format(new Date(dateString));
 }
 
-function SavesChart({
+function LineChart({
   data,
+  emptyLabel,
+  gradientId,
 }: {
   data: { date: string; count: number }[];
+  emptyLabel: string;
+  gradientId: string;
 }) {
   if (!data.length) {
     return (
       <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
-        No archive activity yet.
+        {emptyLabel}
       </div>
     );
   }
@@ -69,13 +82,13 @@ function SavesChart({
     <div className="mt-6 overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
         <defs>
-          <linearGradient id="adminArea" x1="0" x2="0" y1="0" y2="1">
+          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#D9C8B8" stopOpacity="0.55" />
             <stop offset="100%" stopColor="#D9C8B8" stopOpacity="0.05" />
           </linearGradient>
         </defs>
 
-        <path d={areaPath} fill="url(#adminArea)" />
+        <path d={areaPath} fill={`url(#${gradientId})`} />
         <path
           d={path}
           fill="none"
@@ -251,16 +264,87 @@ export default function AdminPage() {
               className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
               <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">
-                Archive saves per day
+                Conversion funnel
               </div>
-              <SavesChart data={stats.savesPerDay} />
+
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Users → Wishlist
+                  </div>
+                  <div className="mt-3 text-2xl font-semibold">
+                    {stats.funnel.usersToWishlistPct}%
+                  </div>
+                  <div className="mt-2 text-sm opacity-70">
+                    {stats.funnel.usersWithWishlist} of {stats.funnel.totalUsers} users
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Users → Archive
+                  </div>
+                  <div className="mt-3 text-2xl font-semibold">
+                    {stats.funnel.usersToArchivePct}%
+                  </div>
+                  <div className="mt-2 text-sm opacity-70">
+                    {stats.funnel.usersWithArchive} of {stats.funnel.totalUsers} users
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                    Wishlist → Archive
+                  </div>
+                  <div className="mt-3 text-2xl font-semibold">
+                    {stats.funnel.wishlistToArchivePct}%
+                  </div>
+                  <div className="mt-2 text-sm opacity-70">
+                    Archive users vs wishlist users
+                  </div>
+                </div>
+              </div>
             </motion.section>
 
             <motion.section
               variants={fadeUp}
               initial="initial"
               animate="animate"
-              transition={{ delay: 0.11 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
+              <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">
+                User growth
+              </div>
+              <LineChart
+                data={stats.userGrowth}
+                emptyLabel="No user growth data yet."
+                gradientId="adminUsersArea"
+              />
+            </motion.section>
+
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.12 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
+              <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">
+                Archive saves per day
+              </div>
+              <LineChart
+                data={stats.savesPerDay}
+                emptyLabel="No archive activity yet."
+                gradientId="adminSavesArea"
+              />
+            </motion.section>
+
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.14 }}
               className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
               <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">
@@ -292,7 +376,7 @@ export default function AdminPage() {
               variants={fadeUp}
               initial="initial"
               animate="animate"
-              transition={{ delay: 0.14 }}
+              transition={{ delay: 0.16 }}
               className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
               <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">

@@ -17,6 +17,11 @@ function getDateKey(dateString: string) {
   return new Date(dateString).toISOString().slice(0, 10);
 }
 
+function safePercent(numerator: number, denominator: number) {
+  if (!denominator) return 0;
+  return Math.round((numerator / denominator) * 100);
+}
+
 export async function GET() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,6 +51,9 @@ export async function GET() {
       return NextResponse.json({ error: usersError.message }, { status: 500 });
     }
 
+    const allUsers = usersData.users || [];
+    const totalUsers = allUsers.length;
+
     const { count: bagsCount, error: bagsCountError } = await admin
       .from("bags")
       .select("*", { count: "exact", head: true });
@@ -70,7 +78,7 @@ export async function GET() {
 
     const { data: bagsData, error: bagsDataError } = await admin
       .from("bags")
-      .select("brand, model, created_at")
+      .select("brand, model, created_at, user_id")
       .order("created_at", { ascending: false });
 
     if (bagsDataError) {
@@ -82,7 +90,7 @@ export async function GET() {
 
     const { data: wishlistData, error: wishlistDataError } = await admin
       .from("wishlist_items")
-      .select("brand, model, created_at")
+      .select("brand, model, created_at, user_id")
       .order("created_at", { ascending: false });
 
     if (wishlistDataError) {
@@ -94,6 +102,17 @@ export async function GET() {
 
     const brandMap = new Map<string, number>();
     const savesPerDayMap = new Map<string, number>();
+    const userGrowthMap = new Map<string, number>();
+    const wishlistUserIds = new Set<string>();
+    const archiveUserIds = new Set<string>();
+
+    for (const user of allUsers) {
+      const createdAt = user.created_at;
+      if (createdAt) {
+        const dateKey = getDateKey(createdAt);
+        userGrowthMap.set(dateKey, (userGrowthMap.get(dateKey) || 0) + 1);
+      }
+    }
 
     for (const bag of bagsData || []) {
       const brand = (bag.brand || "Unknown").trim();
@@ -101,6 +120,16 @@ export async function GET() {
 
       const dateKey = getDateKey(bag.created_at);
       savesPerDayMap.set(dateKey, (savesPerDayMap.get(dateKey) || 0) + 1);
+
+      if (bag.user_id) {
+        archiveUserIds.add(bag.user_id);
+      }
+    }
+
+    for (const item of wishlistData || []) {
+      if (item.user_id) {
+        wishlistUserIds.add(item.user_id);
+      }
     }
 
     const topBrands: BrandCount[] = Array.from(brandMap.entries())
@@ -109,6 +138,11 @@ export async function GET() {
       .slice(0, 8);
 
     const savesPerDay = Array.from(savesPerDayMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-14);
+
+    const userGrowth = Array.from(userGrowthMap.entries())
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-14);
@@ -139,13 +173,27 @@ export async function GET() {
 
     const recentActivity = activity.slice(0, 20);
 
+    const usersWithWishlist = wishlistUserIds.size;
+    const usersWithArchive = archiveUserIds.size;
+
+    const funnel = {
+      totalUsers,
+      usersWithWishlist,
+      usersWithArchive,
+      usersToWishlistPct: safePercent(usersWithWishlist, totalUsers),
+      usersToArchivePct: safePercent(usersWithArchive, totalUsers),
+      wishlistToArchivePct: safePercent(usersWithArchive, usersWithWishlist),
+    };
+
     return NextResponse.json({
-      totalUsers: usersData.users.length,
+      totalUsers,
       totalArchivePieces: bagsCount || 0,
       totalWishlistItems: wishlistCount || 0,
       topBrands,
       savesPerDay,
       recentActivity,
+      userGrowth,
+      funnel,
     });
   } catch (error: any) {
     return NextResponse.json(
