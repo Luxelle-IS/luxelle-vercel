@@ -11,6 +11,12 @@ type AdminStats = {
   totalWishlistItems: number;
   topBrands: { brand: string; count: number }[];
   savesPerDay: { date: string; count: number }[];
+  recentActivity: {
+    type: "bag" | "wishlist";
+    date: string;
+    brand: string;
+    model: string;
+  }[];
 };
 
 const fadeUp = {
@@ -275,6 +281,44 @@ export default function AdminPage() {
                       <div className="text-lg font-semibold">{item.brand}</div>
                       <div className="mt-2 text-sm opacity-70">
                         {item.count} saved piece{item.count === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.section>
+
+            <motion.section
+              variants={fadeUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.14 }}
+              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+            >
+              <div className="text-[11px] uppercase tracking-[0.32em] opacity-60">
+                Recent activity
+              </div>
+
+              {!stats.recentActivity.length ? (
+                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
+                  No activity yet.
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {stats.recentActivity.map((item, i) => (
+                    <div
+                      key={`${item.type}-${item.date}-${item.brand}-${item.model}-${i}`}
+                      className="flex items-center justify-between rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3"
+                    >
+                      <div className="text-sm">
+                        <span className="font-medium">
+                          {item.type === "bag" ? "Saved bag" : "Wishlist item"}
+                        </span>{" "}
+                        — {item.brand} {item.model}
+                      </div>
+
+                      <div className="text-xs opacity-60">
+                        {formatDate(item.date)}
                       </div>
                     </div>
                   ))}
