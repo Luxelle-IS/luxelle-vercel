@@ -306,6 +306,44 @@ async function compressImage(file: File): Promise<Blob> {
   return blob;
 }
 
+async function downloadCollectionOverviewPdf(
+  collection: SavedBag[],
+  wishlistCount: number
+) {
+  try {
+    const res = await fetch("/api/collection-overview-pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        collection,
+        wishlistCount,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      alert(data?.error || "Could not generate PDF overview.");
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "luxelle-collection-overview.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch {
+    alert("Could not generate PDF overview.");
+  }
+}
+
 function LoadingCard() {
   return (
     <div className="animate-pulse rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
@@ -348,13 +386,15 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
   if (collection.length === 0) {
     return (
       <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6 text-sm opacity-70">
-        Start your private archive to reveal how your collection evolves over time.
+        Start your private archive to reveal how your collection evolves over
+        time.
       </div>
     );
   }
 
   const sorted = [...collection].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
   let runningTotal = 0;
@@ -388,7 +428,9 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
     })
     .join(" ");
 
-  const areaPath = `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
+  const areaPath = `${path} L ${width - padding} ${
+    height - padding
+  } L ${padding} ${height - padding} Z`;
 
   return (
     <div className="mt-6 overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-4">
@@ -459,30 +501,35 @@ function OnboardingCard({
       </h2>
 
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed opacity-75">
-        {userEmail ? `You’re signed in as ${userEmail}.` : "You’re signed in."} Add
-        your first piece to begin building a refined private archive for the bags
-        you own and the ones you’re still pursuing.
+        {userEmail
+          ? `You’re signed in as ${userEmail}.`
+          : "You’re signed in."}{" "}
+        Add your first piece to begin building a refined private archive for the
+        bags you own and the ones you’re still pursuing.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">1. Upload a piece</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            Start with a clear image and let Luxelle create an elegant archive starter.
+            Start with a clear image and let Luxelle create an elegant archive
+            starter.
           </div>
         </div>
 
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">2. Review the match</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            See an editorial AI result with confidence cues and a directional value range.
+            See an editorial AI result with confidence cues and a directional
+            value range.
           </div>
         </div>
 
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">3. Build your archive</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            Save acquisition, condition, notes, provenance, and wishlist intent beautifully.
+            Save acquisition, condition, notes, provenance, and wishlist intent
+            beautifully.
           </div>
         </div>
       </div>
@@ -524,7 +571,9 @@ function StatCard({
       transition={{ duration: 0.18 }}
       className="rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-5"
     >
-      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+        {label}
+      </div>
       <div className="mt-3 text-2xl font-semibold leading-snug">{value}</div>
       {subtext && <div className="mt-2 text-sm opacity-65">{subtext}</div>}
     </motion.div>
@@ -542,7 +591,9 @@ function SectionHeader({
 }) {
   return (
     <div>
-      <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">{eyebrow}</div>
+      <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+        {eyebrow}
+      </div>
       <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">
         {title}
       </h2>
@@ -569,8 +620,9 @@ function EmptyArchiveState({ onStart }: { onStart: () => void }) {
             collection beautifully.
           </h3>
           <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-72">
-            Your archive is still empty. Add your first bag to unlock collection value,
-            signature-piece tracking, and a more luxurious overview of what you own.
+            Your archive is still empty. Add your first bag to unlock collection
+            value, signature-piece tracking, and a more luxurious overview of
+            what you own.
           </p>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -600,10 +652,14 @@ function EmptyArchiveState({ onStart }: { onStart: () => void }) {
 
         <div className="flex min-h-[280px] items-center justify-center bg-[linear-gradient(180deg,#F7F1EA_0%,#EFE4D7_100%)] p-8">
           <div className="max-w-xs text-center">
-            <div className="text-sm uppercase tracking-[0.28em] opacity-45">Luxelle</div>
+            <div className="text-sm uppercase tracking-[0.28em] opacity-45">
+              Luxelle
+            </div>
             <div className="mt-5 rounded-[26px] border border-white/60 bg-white/70 p-6 shadow-sm backdrop-blur">
               <div className="text-lg font-semibold">Your first saved piece</div>
-              <div className="mt-2 text-sm opacity-65">will appear here as the beginning of your archive.</div>
+              <div className="mt-2 text-sm opacity-65">
+                will appear here as the beginning of your archive.
+              </div>
             </div>
           </div>
         </div>
@@ -612,7 +668,11 @@ function EmptyArchiveState({ onStart }: { onStart: () => void }) {
   );
 }
 
-function EmptyWishlistState({ onFocusWishlist }: { onFocusWishlist: () => void }) {
+function EmptyWishlistState({
+  onFocusWishlist,
+}: {
+  onFocusWishlist: () => void;
+}) {
   return (
     <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
       <div className="text-[11px] uppercase tracking-[0.28em] opacity-55">
@@ -622,8 +682,8 @@ function EmptyWishlistState({ onFocusWishlist }: { onFocusWishlist: () => void }
         Nothing on your radar yet.
       </div>
       <div className="mt-3 max-w-xl text-sm leading-relaxed opacity-72">
-        Add the pieces you want to hunt so Luxelle becomes both a record of ownership
-        and a map of desire.
+        Add the pieces you want to hunt so Luxelle becomes both a record of
+        ownership and a map of desire.
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -681,12 +741,14 @@ function CollectionSummaryCard({
   totalLow,
   totalHigh,
   mostValuableBag,
+  onDownload,
 }: {
   collection: SavedBag[];
   wishlistCount: number;
   totalLow: number;
   totalHigh: number;
   mostValuableBag: SavedBag | null;
+  onDownload: () => void;
 }) {
   const topBrands = Array.from(
     collection.reduce((map, bag) => {
@@ -708,11 +770,11 @@ function CollectionSummaryCard({
           <h3 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">
             A luxury archive
             <br />
-            worth showing.
+            worth saving beautifully.
           </h3>
           <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-72">
-            This is the kind of high-level collector view people naturally want to
-            screenshot: what you own, what it’s worth, and what defines your taste.
+            Export a polished collector overview as a PDF with your archive
+            size, value range, top brands, and signature piece.
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-4">
@@ -720,7 +782,9 @@ function CollectionSummaryCard({
               <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                 Pieces archived
               </div>
-              <div className="mt-3 text-3xl font-semibold">{collection.length}</div>
+              <div className="mt-3 text-3xl font-semibold">
+                {collection.length}
+              </div>
             </div>
 
             <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
@@ -757,6 +821,15 @@ function CollectionSummaryCard({
               </div>
             </div>
           )}
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              onClick={onDownload}
+              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+            >
+              Download collection overview PDF
+            </button>
+          </div>
         </div>
 
         <div className="flex min-h-[320px] items-center justify-center border-t border-white/30 p-8 lg:border-l lg:border-t-0">
@@ -771,8 +844,12 @@ function CollectionSummaryCard({
                 <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
                   Signature piece
                 </div>
-                <div className="mt-3 text-2xl font-semibold">{mostValuableBag.brand}</div>
-                <div className="text-base opacity-70">{mostValuableBag.model}</div>
+                <div className="mt-3 text-2xl font-semibold">
+                  {mostValuableBag.brand}
+                </div>
+                <div className="text-base opacity-70">
+                  {mostValuableBag.model}
+                </div>
                 <div className="mt-4 text-sm font-medium">
                   {formatCurrency(mostValuableBag.estimated_low)} –{" "}
                   {formatCurrency(mostValuableBag.estimated_high)}
@@ -812,9 +889,9 @@ export default function AppPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [hideOnboarding, setHideOnboarding] = useState(false);
   const [archiveSourceMessage, setArchiveSourceMessage] = useState("");
-  const [activeWishForArchive, setActiveWishForArchive] = useState<number | null>(
-    null
-  );
+  const [activeWishForArchive, setActiveWishForArchive] = useState<
+    number | null
+  >(null);
   const [justSaved, setJustSaved] = useState(false);
 
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -838,8 +915,10 @@ export default function AppPage() {
   const [wishNotes, setWishNotes] = useState("");
   const [wishMessage, setWishMessage] = useState("");
 
-  const [showWishBrandSuggestions, setShowWishBrandSuggestions] = useState(false);
-  const [showWishModelSuggestions, setShowWishModelSuggestions] = useState(false);
+  const [showWishBrandSuggestions, setShowWishBrandSuggestions] =
+    useState(false);
+  const [showWishModelSuggestions, setShowWishModelSuggestions] =
+    useState(false);
 
   const [editingWishId, setEditingWishId] = useState<number | null>(null);
   const [editWishBrand, setEditWishBrand] = useState("");
@@ -1152,7 +1231,9 @@ export default function AppPage() {
         }
 
         if (!res.ok) {
-          setError(data.error || "The identification request could not be completed.");
+          setError(
+            data.error || "The identification request could not be completed."
+          );
           setLoading(false);
           return;
         }
@@ -1387,19 +1468,32 @@ export default function AppPage() {
     setJustSaved(false);
   }
 
-  const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
-  const totalHigh = collection.reduce((sum, bag) => sum + (bag.estimated_high || 0), 0);
-  const totalPurchasePrice = collection.reduce((sum, bag) => sum + (bag.purchase_price || 0), 0);
+  const totalLow = collection.reduce(
+    (sum, bag) => sum + (bag.estimated_low || 0),
+    0
+  );
+  const totalHigh = collection.reduce(
+    (sum, bag) => sum + (bag.estimated_high || 0),
+    0
+  );
+  const totalPurchasePrice = collection.reduce(
+    (sum, bag) => sum + (bag.purchase_price || 0),
+    0
+  );
 
   const potentialGainLow = totalLow - totalPurchasePrice;
   const potentialGainHigh = totalHigh - totalPurchasePrice;
 
   const averageValue =
-    collection.length > 0 ? Math.round((totalLow + totalHigh) / 2 / collection.length) : 0;
+    collection.length > 0
+      ? Math.round((totalLow + totalHigh) / 2 / collection.length)
+      : 0;
 
   const mostValuableBag = useMemo(() => {
     if (collection.length === 0) return null;
-    return [...collection].sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0))[0];
+    return [...collection].sort(
+      (a, b) => (b.estimated_high || 0) - (a.estimated_high || 0)
+    )[0];
   }, [collection]);
 
   const brands = useMemo(() => {
@@ -1431,7 +1525,9 @@ export default function AppPage() {
     }
 
     if (conditionFilter !== "all") {
-      items = items.filter((bag) => getConditionLabel(bag) === conditionFilter);
+      items = items.filter(
+        (bag) => getConditionLabel(bag) === conditionFilter
+      );
     }
 
     if (materialFilter !== "all") {
@@ -1461,9 +1557,17 @@ export default function AppPage() {
     }
 
     return items;
-  }, [collection, brandFilter, conditionFilter, materialFilter, searchQuery, sortBy]);
+  }, [
+    collection,
+    brandFilter,
+    conditionFilter,
+    materialFilter,
+    searchQuery,
+    sortBy,
+  ]);
 
-  const showOnboarding = !collectionLoading && collection.length === 0 && !hideOnboarding;
+  const showOnboarding =
+    !collectionLoading && collection.length === 0 && !hideOnboarding;
   const collectionMid = Math.round((totalLow + totalHigh) / 2);
   const wishlistCount = wishlist.length;
   const showSummaryCard = collection.length > 0;
@@ -1494,8 +1598,9 @@ export default function AppPage() {
                 curated privately.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-72 md:text-base">
-                Archive what you own, organize what you want, and turn your collection
-                into a more elegant, more intelligent private dashboard.
+                Archive what you own, organize what you want, and turn your
+                collection into a more elegant, more intelligent private
+                dashboard.
               </p>
               <div className="mt-4 text-sm opacity-65">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
@@ -1583,7 +1688,10 @@ export default function AppPage() {
                 scrollToUploadPanel();
               }}
               onSkip={() => {
-                window.localStorage.setItem("luxelle_onboarding_hidden", "true");
+                window.localStorage.setItem(
+                  "luxelle_onboarding_hidden",
+                  "true"
+                );
                 setHideOnboarding(true);
               }}
             />
@@ -1604,6 +1712,9 @@ export default function AppPage() {
               totalLow={totalLow}
               totalHigh={totalHigh}
               mostValuableBag={mostValuableBag}
+              onDownload={() =>
+                downloadCollectionOverviewPdf(collection, wishlistCount)
+              }
             />
           </motion.section>
         )}
@@ -1637,9 +1748,9 @@ export default function AppPage() {
                   <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
                     <StatCard
                       label="Potential performance"
-                      value={`${formatCurrency(potentialGainLow)} – ${formatCurrency(
-                        potentialGainHigh
-                      )}`}
+                      value={`${formatCurrency(
+                        potentialGainLow
+                      )} – ${formatCurrency(potentialGainHigh)}`}
                       subtext="Directional gain versus total acquisition cost"
                     />
                     <StatCard
@@ -1681,7 +1792,9 @@ export default function AppPage() {
                     <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
                       {mostValuableBag.brand}
                     </h2>
-                    <div className="mt-2 text-lg opacity-75">{mostValuableBag.model}</div>
+                    <div className="mt-2 text-lg opacity-75">
+                      {mostValuableBag.model}
+                    </div>
 
                     <div className="mt-6 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
                       {getConditionLabel(mostValuableBag)}
@@ -1695,13 +1808,19 @@ export default function AppPage() {
                       {formatCurrency(mostValuableBag.estimated_high)}
                     </div>
 
-                    {(mostValuableBag.color || mostValuableBag.material || mostValuableBag.size) && (
+                    {(mostValuableBag.color ||
+                      mostValuableBag.material ||
+                      mostValuableBag.size) && (
                       <>
                         <div className="mt-8 text-[11px] uppercase tracking-[0.22em] opacity-55">
                           Archive details
                         </div>
                         <div className="mt-2 text-sm opacity-75">
-                          {[mostValuableBag.color, mostValuableBag.material, mostValuableBag.size]
+                          {[
+                            mostValuableBag.color,
+                            mostValuableBag.material,
+                            mostValuableBag.size,
+                          ]
                             .filter(Boolean)
                             .join(" • ")}
                         </div>
@@ -1845,8 +1964,12 @@ export default function AppPage() {
                         <div className="p-6">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-xl font-semibold">{bag.brand}</div>
-                              <div className="text-base opacity-70">{bag.model}</div>
+                              <div className="text-xl font-semibold">
+                                {bag.brand}
+                              </div>
+                              <div className="text-base opacity-70">
+                                {bag.model}
+                              </div>
                             </div>
 
                             <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
@@ -1860,7 +1983,8 @@ export default function AppPage() {
                             Estimated value
                           </div>
                           <div className="mt-2 text-sm font-medium">
-                            {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+                            {formatCurrency(bag.estimated_low)} –{" "}
+                            {formatCurrency(bag.estimated_high)}
                           </div>
 
                           {bag.purchase_price !== null && (
@@ -1878,8 +2002,13 @@ export default function AppPage() {
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
                                 Performance potential
                               </div>
-                              <div className={`mt-2 text-sm font-medium ${getPerformanceTone(gainHigh)}`}>
-                                {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
+                              <div
+                                className={`mt-2 text-sm font-medium ${getPerformanceTone(
+                                  gainHigh
+                                )}`}
+                              >
+                                {formatCurrency(gainLow ?? 0)} –{" "}
+                                {formatCurrency(gainHigh ?? 0)}
                               </div>
                             </>
                           )}
@@ -2117,7 +2246,9 @@ export default function AppPage() {
                                 type="text"
                                 placeholder="Brand"
                                 value={editWishBrand}
-                                onFocus={() => setShowEditWishBrandSuggestions(true)}
+                                onFocus={() =>
+                                  setShowEditWishBrandSuggestions(true)
+                                }
                                 onChange={(e) => {
                                   setEditWishBrand(e.target.value);
                                   setShowEditWishBrandSuggestions(true);
@@ -2142,7 +2273,9 @@ export default function AppPage() {
                                 type="text"
                                 placeholder="Model"
                                 value={editWishModel}
-                                onFocus={() => setShowEditWishModelSuggestions(true)}
+                                onFocus={() =>
+                                  setShowEditWishModelSuggestions(true)
+                                }
                                 onChange={(e) => {
                                   setEditWishModel(e.target.value);
                                   setShowEditWishModelSuggestions(true);
@@ -2164,13 +2297,17 @@ export default function AppPage() {
                               type="number"
                               placeholder="Target price"
                               value={editWishTargetPrice}
-                              onChange={(e) => setEditWishTargetPrice(e.target.value)}
+                              onChange={(e) =>
+                                setEditWishTargetPrice(e.target.value)
+                              }
                               className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                             />
 
                             <select
                               value={editWishCurrency}
-                              onChange={(e) => setEditWishCurrency(e.target.value)}
+                              onChange={(e) =>
+                                setEditWishCurrency(e.target.value)
+                              }
                               className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                             >
                               <option value="USD">USD</option>
@@ -2182,7 +2319,9 @@ export default function AppPage() {
 
                             <select
                               value={editWishCondition}
-                              onChange={(e) => setEditWishCondition(e.target.value)}
+                              onChange={(e) =>
+                                setEditWishCondition(e.target.value)
+                              }
                               className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                             >
                               <option>Excellent</option>
@@ -2204,7 +2343,9 @@ export default function AppPage() {
                               type="text"
                               placeholder="Material"
                               value={editWishMaterial}
-                              onChange={(e) => setEditWishMaterial(e.target.value)}
+                              onChange={(e) =>
+                                setEditWishMaterial(e.target.value)
+                              }
                               className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                             />
 
@@ -2241,15 +2382,21 @@ export default function AppPage() {
                           </div>
 
                           {editWishMessage && (
-                            <div className="mt-3 text-sm opacity-75">{editWishMessage}</div>
+                            <div className="mt-3 text-sm opacity-75">
+                              {editWishMessage}
+                            </div>
                           )}
                         </>
                       ) : (
                         <>
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-xl font-semibold">{item.brand}</div>
-                              <div className="text-base opacity-70">{item.model}</div>
+                              <div className="text-xl font-semibold">
+                                {item.brand}
+                              </div>
+                              <div className="text-base opacity-70">
+                                {item.model}
+                              </div>
                             </div>
 
                             {item.desired_condition && (
@@ -2271,7 +2418,10 @@ export default function AppPage() {
                                 Target price
                               </div>
                               <div className="mt-2 text-sm font-medium">
-                                {formatMoneyWithCurrency(item.target_price, item.currency)}
+                                {formatMoneyWithCurrency(
+                                  item.target_price,
+                                  item.currency
+                                )}
                               </div>
                             </>
                           )}
@@ -2294,7 +2444,9 @@ export default function AppPage() {
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
                                 Notes
                               </div>
-                              <div className="mt-2 text-sm opacity-75">{item.notes}</div>
+                              <div className="mt-2 text-sm opacity-75">
+                                {item.notes}
+                              </div>
                             </>
                           )}
 
@@ -2350,10 +2502,13 @@ export default function AppPage() {
 
               {!preview && !result && !loading && collection.length === 0 && (
                 <div className="mt-6 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
-                  <div className="text-lg font-semibold">Your first upload starts everything.</div>
+                  <div className="text-lg font-semibold">
+                    Your first upload starts everything.
+                  </div>
                   <div className="mt-2 text-sm leading-relaxed opacity-72">
-                    Once you add your first piece, Luxelle can begin shaping your archive,
-                    highlighting your collection, and making your dashboard feel truly personal.
+                    Once you add your first piece, Luxelle can begin shaping
+                    your archive, highlighting your collection, and making your
+                    dashboard feel truly personal.
                   </div>
                 </div>
               )}
@@ -2368,7 +2523,9 @@ export default function AppPage() {
                 <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-12 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
                   <div>
                     <div className="font-medium">Upload a bag image</div>
-                    <div className="mt-1 text-xs opacity-60">JPG, PNG, or HEIC</div>
+                    <div className="mt-1 text-xs opacity-60">
+                      JPG, PNG, or HEIC
+                    </div>
                   </div>
                   <input
                     type="file"
@@ -2418,7 +2575,9 @@ export default function AppPage() {
                     Suggested match
                   </div>
 
-                  <div className="mt-3 text-2xl font-semibold">{result.brand}</div>
+                  <div className="mt-3 text-2xl font-semibold">
+                    {result.brand}
+                  </div>
                   <div className="text-lg opacity-75">{result.model}</div>
 
                   <div className="mt-4 text-sm leading-relaxed opacity-80">
@@ -2445,7 +2604,8 @@ export default function AppPage() {
                         Estimated value range
                       </div>
                       <div className="mt-2 text-base font-medium">
-                        {formatCurrency(result.estimatedLow)} – {formatCurrency(result.estimatedHigh)}
+                        {formatCurrency(result.estimatedLow)} –{" "}
+                        {formatCurrency(result.estimatedHigh)}
                       </div>
                     </div>
                   </div>
@@ -2479,7 +2639,9 @@ export default function AppPage() {
                       </div>
                       <select
                         value={purchasePriceCurrency}
-                        onChange={(e) => setPurchasePriceCurrency(e.target.value)}
+                        onChange={(e) =>
+                          setPurchasePriceCurrency(e.target.value)
+                        }
                         className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                       >
                         <option value="USD">USD</option>
@@ -2582,7 +2744,8 @@ export default function AppPage() {
                   />
 
                   <div className="mt-3 text-xs opacity-60">
-                    Estimates are directional and designed for collection management.
+                    Estimates are directional and designed for collection
+                    management.
                   </div>
 
                   <motion.button
@@ -2594,7 +2757,9 @@ export default function AppPage() {
                     Save to collection
                   </motion.button>
 
-                  {saveMessage && <div className="mt-3 text-sm opacity-80">{saveMessage}</div>}
+                  {saveMessage && (
+                    <div className="mt-3 text-sm opacity-80">{saveMessage}</div>
+                  )}
                 </motion.div>
               )}
 
@@ -2626,8 +2791,13 @@ export default function AppPage() {
               </div>
               <div className="mt-5 space-y-3 text-sm text-white/72">
                 <p>• Your archive is visible only to your account.</p>
-                <p>• Value ranges are directional and not resale guarantees.</p>
-                <p>• Wishlist targets and owned pieces now live in one collector-grade flow.</p>
+                <p>
+                  • Value ranges are directional and not resale guarantees.
+                </p>
+                <p>
+                  • Wishlist targets and owned pieces now live in one
+                  collector-grade flow.
+                </p>
               </div>
             </motion.section>
           </div>
