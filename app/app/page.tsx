@@ -310,38 +310,33 @@ async function downloadCollectionOverviewPdf(
   collection: SavedBag[],
   wishlistCount: number
 ) {
-  try {
-    const res = await fetch("/api/collection-overview-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        collection,
-        wishlistCount,
-      }),
-    });
+  const res = await fetch("/api/collection-overview-pdf", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      collection,
+      wishlistCount,
+    }),
+  });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error || "Could not generate PDF overview.");
-      return;
-    }
-
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "luxelle-collection-overview.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    window.URL.revokeObjectURL(url);
-  } catch {
-    alert("Could not generate PDF overview.");
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Could not generate PDF overview.");
   }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "luxelle-collection-overview.pdf";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  window.URL.revokeObjectURL(url);
 }
 
 function LoadingCard() {
@@ -742,6 +737,8 @@ function CollectionSummaryCard({
   totalHigh,
   mostValuableBag,
   onDownload,
+  isDownloadingPdf,
+  pdfMessage,
 }: {
   collection: SavedBag[];
   wishlistCount: number;
@@ -749,6 +746,8 @@ function CollectionSummaryCard({
   totalHigh: number;
   mostValuableBag: SavedBag | null;
   onDownload: () => void;
+  isDownloadingPdf: boolean;
+  pdfMessage: string;
 }) {
   const topBrands = Array.from(
     collection.reduce((map, bag) => {
@@ -825,11 +824,18 @@ function CollectionSummaryCard({
           <div className="mt-8 flex flex-wrap gap-3">
             <button
               onClick={onDownload}
-              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+              disabled={isDownloadingPdf}
+              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Download collection overview PDF
+              {isDownloadingPdf
+                ? "Preparing your PDF..."
+                : "Download collection overview PDF"}
             </button>
           </div>
+
+          {pdfMessage && (
+            <div className="mt-3 text-sm opacity-75">{pdfMessage}</div>
+          )}
         </div>
 
         <div className="flex min-h-[320px] items-center justify-center border-t border-white/30 p-8 lg:border-l lg:border-t-0">
@@ -893,6 +899,8 @@ export default function AppPage() {
     number | null
   >(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [pdfMessage, setPdfMessage] = useState("");
 
   const [purchasePrice, setPurchasePrice] = useState("");
   const [purchasePriceCurrency, setPurchasePriceCurrency] = useState("USD");
@@ -1183,6 +1191,7 @@ export default function AppPage() {
       clearWishlistForm();
       cancelEditingWishlist();
       setJustSaved(false);
+      setPdfMessage("");
       loadUser();
       loadCollection();
       loadWishlist();
@@ -1466,6 +1475,21 @@ export default function AppPage() {
     clearWishlistForm();
     cancelEditingWishlist();
     setJustSaved(false);
+    setPdfMessage("");
+  }
+
+  async function handleDownloadPdf() {
+    setPdfMessage("");
+    setIsDownloadingPdf(true);
+
+    try {
+      await downloadCollectionOverviewPdf(collection, wishlistCount);
+      setPdfMessage("Your PDF overview is ready and downloading.");
+    } catch (error: any) {
+      setPdfMessage(error?.message || "Could not generate PDF overview.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   }
 
   const totalLow = collection.reduce(
@@ -1712,9 +1736,9 @@ export default function AppPage() {
               totalLow={totalLow}
               totalHigh={totalHigh}
               mostValuableBag={mostValuableBag}
-              onDownload={() =>
-                downloadCollectionOverviewPdf(collection, wishlistCount)
-              }
+              onDownload={handleDownloadPdf}
+              isDownloadingPdf={isDownloadingPdf}
+              pdfMessage={pdfMessage}
             />
           </motion.section>
         )}
