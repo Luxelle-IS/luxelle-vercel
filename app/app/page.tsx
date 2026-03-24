@@ -675,6 +675,124 @@ function FirstSaveCelebration({
   );
 }
 
+function CollectionSummaryCard({
+  collection,
+  wishlistCount,
+  totalLow,
+  totalHigh,
+  mostValuableBag,
+}: {
+  collection: SavedBag[];
+  wishlistCount: number;
+  totalLow: number;
+  totalHigh: number;
+  mostValuableBag: SavedBag | null;
+}) {
+  const topBrands = Array.from(
+    collection.reduce((map, bag) => {
+      map.set(bag.brand, (map.get(bag.brand) || 0) + 1);
+      return map;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([brand]) => brand);
+
+  return (
+    <div className="overflow-hidden rounded-[34px] border border-[#D8C7B8] bg-[linear-gradient(135deg,#FBF7F2_0%,#F1E6DA_50%,#E8D8C8_100%)] shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="p-8 md:p-10">
+          <div className="text-[11px] uppercase tracking-[0.34em] opacity-55">
+            Share-worthy collection summary
+          </div>
+          <h3 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">
+            A luxury archive
+            <br />
+            worth showing.
+          </h3>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-72">
+            This is the kind of high-level collector view people naturally want to
+            screenshot: what you own, what it’s worth, and what defines your taste.
+          </p>
+
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                Pieces archived
+              </div>
+              <div className="mt-3 text-3xl font-semibold">{collection.length}</div>
+            </div>
+
+            <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                Wishlist targets
+              </div>
+              <div className="mt-3 text-3xl font-semibold">{wishlistCount}</div>
+            </div>
+
+            <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur col-span-2">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                Collection value range
+              </div>
+              <div className="mt-3 text-2xl font-semibold">
+                {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
+              </div>
+            </div>
+          </div>
+
+          {topBrands.length > 0 && (
+            <div className="mt-8">
+              <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                Signature brand profile
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {topBrands.map((brand) => (
+                  <div
+                    key={brand}
+                    className="rounded-full border border-white/60 bg-white/60 px-4 py-2 text-sm backdrop-blur"
+                  >
+                    {brand}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-h-[320px] items-center justify-center border-t border-white/30 p-8 lg:border-l lg:border-t-0">
+          {mostValuableBag ? (
+            <div className="w-full max-w-sm overflow-hidden rounded-[28px] border border-white/50 bg-white/65 shadow-sm backdrop-blur">
+              <img
+                src={mostValuableBag.image_url}
+                alt={`${mostValuableBag.brand} ${mostValuableBag.model}`}
+                className="h-72 w-full object-cover"
+              />
+              <div className="p-6">
+                <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
+                  Signature piece
+                </div>
+                <div className="mt-3 text-2xl font-semibold">{mostValuableBag.brand}</div>
+                <div className="text-base opacity-70">{mostValuableBag.model}</div>
+                <div className="mt-4 text-sm font-medium">
+                  {formatCurrency(mostValuableBag.estimated_low)} –{" "}
+                  {formatCurrency(mostValuableBag.estimated_high)}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-xs rounded-[26px] border border-white/60 bg-white/65 p-8 text-center shadow-sm backdrop-blur">
+              <div className="text-lg font-semibold">Your signature piece</div>
+              <div className="mt-3 text-sm opacity-68">
+                appears here once your archive begins.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AppPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -743,7 +861,6 @@ export default function AppPage() {
   const addWishModelWrapRef = useRef<HTMLDivElement | null>(null);
   const editWishBrandWrapRef = useRef<HTMLDivElement | null>(null);
   const editWishModelWrapRef = useRef<HTMLDivElement | null>(null);
-  const uploadPanelRef = useRef<HTMLElement | null>(null);
   const wishlistSectionRef = useRef<HTMLElement | null>(null);
 
   const wishBrandSuggestions = useMemo(
@@ -1349,6 +1466,7 @@ export default function AppPage() {
   const showOnboarding = !collectionLoading && collection.length === 0 && !hideOnboarding;
   const collectionMid = Math.round((totalLow + totalHigh) / 2);
   const wishlistCount = wishlist.length;
+  const showSummaryCard = collection.length > 0;
 
   return (
     <motion.main
@@ -1470,6 +1588,24 @@ export default function AppPage() {
               }}
             />
           </div>
+        )}
+
+        {showSummaryCard && (
+          <motion.section
+            variants={fadeUp}
+            initial="initial"
+            animate="animate"
+            transition={{ delay: 0.06, duration: 0.45 }}
+            className="mb-8"
+          >
+            <CollectionSummaryCard
+              collection={collection}
+              wishlistCount={wishlistCount}
+              totalLow={totalLow}
+              totalHigh={totalHigh}
+              mostValuableBag={mostValuableBag}
+            />
+          </motion.section>
         )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.18fr_0.82fr]">
@@ -1954,7 +2090,14 @@ export default function AppPage() {
                   <LoadingCard />
                 </div>
               ) : wishlist.length === 0 ? (
-                <EmptyWishlistState onFocusWishlist={() => wishlistSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+                <EmptyWishlistState
+                  onFocusWishlist={() =>
+                    wishlistSectionRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  }
+                />
               ) : (
                 <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                   {wishlist.map((item) => (
@@ -2193,9 +2336,6 @@ export default function AppPage() {
           <div className="space-y-8">
             <motion.section
               id="upload-panel"
-              ref={(el) => {
-                uploadPanelRef.current = el;
-              }}
               variants={fadeUp}
               initial="initial"
               animate="animate"
