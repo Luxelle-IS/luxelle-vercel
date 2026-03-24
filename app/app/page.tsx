@@ -555,6 +555,126 @@ function SectionHeader({
   );
 }
 
+function EmptyArchiveState({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="mt-6 overflow-hidden rounded-[30px] border border-[#E7DDD3] bg-[#FCF8F4]">
+      <div className="grid grid-cols-1 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="p-8 md:p-10">
+          <div className="text-[11px] uppercase tracking-[0.28em] opacity-55">
+            First archive moment
+          </div>
+          <h3 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">
+            Start your private
+            <br />
+            collection beautifully.
+          </h3>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-72">
+            Your archive is still empty. Add your first bag to unlock collection value,
+            signature-piece tracking, and a more luxurious overview of what you own.
+          </p>
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              "AI match and value guidance",
+              "Private archive and bag details",
+              "A collector dashboard that grows with you",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-[20px] border border-[#E7DDD3] bg-white px-4 py-4 text-sm"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              onClick={onStart}
+              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+            >
+              Upload your first piece
+            </button>
+          </div>
+        </div>
+
+        <div className="flex min-h-[280px] items-center justify-center bg-[linear-gradient(180deg,#F7F1EA_0%,#EFE4D7_100%)] p-8">
+          <div className="max-w-xs text-center">
+            <div className="text-sm uppercase tracking-[0.28em] opacity-45">Luxelle</div>
+            <div className="mt-5 rounded-[26px] border border-white/60 bg-white/70 p-6 shadow-sm backdrop-blur">
+              <div className="text-lg font-semibold">Your first saved piece</div>
+              <div className="mt-2 text-sm opacity-65">will appear here as the beginning of your archive.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyWishlistState({ onFocusWishlist }: { onFocusWishlist: () => void }) {
+  return (
+    <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
+      <div className="text-[11px] uppercase tracking-[0.28em] opacity-55">
+        Wishlist signal
+      </div>
+      <div className="mt-4 text-2xl font-semibold tracking-[-0.02em]">
+        Nothing on your radar yet.
+      </div>
+      <div className="mt-3 max-w-xl text-sm leading-relaxed opacity-72">
+        Add the pieces you want to hunt so Luxelle becomes both a record of ownership
+        and a map of desire.
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          onClick={onFocusWishlist}
+          className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+        >
+          Add first wishlist item
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FirstSaveCelebration({
+  message,
+  onUploadAnother,
+  onGoWishlist,
+}: {
+  message: string;
+  onUploadAnother: () => void;
+  onGoWishlist: () => void;
+}) {
+  return (
+    <div className="mt-6 rounded-[28px] border border-[#D8C7B8] bg-[linear-gradient(180deg,#FFFDFC_0%,#F6EEE7_100%)] p-6 shadow-sm">
+      <div className="text-[11px] uppercase tracking-[0.28em] opacity-55">
+        Archive updated
+      </div>
+      <div className="mt-3 text-2xl font-semibold tracking-[-0.02em]">
+        Your piece is now part of Luxelle.
+      </div>
+      <div className="mt-3 text-sm leading-relaxed opacity-72">{message}</div>
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button
+          onClick={onUploadAnother}
+          className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+        >
+          Add another piece
+        </button>
+        <button
+          onClick={onGoWishlist}
+          className="rounded-2xl border border-[#D8C7B8] bg-white px-5 py-3 text-sm transition hover:bg-[#F8F3EE]"
+        >
+          Build your wishlist
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AppPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -577,6 +697,7 @@ export default function AppPage() {
   const [activeWishForArchive, setActiveWishForArchive] = useState<number | null>(
     null
   );
+  const [justSaved, setJustSaved] = useState(false);
 
   const [purchasePrice, setPurchasePrice] = useState("");
   const [purchasePriceCurrency, setPurchasePriceCurrency] = useState("USD");
@@ -622,6 +743,8 @@ export default function AppPage() {
   const addWishModelWrapRef = useRef<HTMLDivElement | null>(null);
   const editWishBrandWrapRef = useRef<HTMLDivElement | null>(null);
   const editWishModelWrapRef = useRef<HTMLDivElement | null>(null);
+  const uploadPanelRef = useRef<HTMLElement | null>(null);
+  const wishlistSectionRef = useRef<HTMLElement | null>(null);
 
   const wishBrandSuggestions = useMemo(
     () => getBrandSuggestions(wishBrand),
@@ -684,6 +807,16 @@ export default function AppPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  function scrollToUploadPanel() {
+    const uploadEl = document.getElementById("upload-panel");
+    uploadEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToWishlist() {
+    const wishlistEl = document.getElementById("wishlist-section");
+    wishlistEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function clearCurrentBagState() {
     setResult(null);
@@ -758,6 +891,7 @@ export default function AppPage() {
 
   function startArchiveFromWishlist(item: WishlistItem) {
     clearCurrentBagState();
+    setJustSaved(false);
     setPurchasePrice(
       item.target_price !== null && item.target_price !== undefined
         ? String(item.target_price)
@@ -773,9 +907,7 @@ export default function AppPage() {
       `Archive starter loaded from wishlist: ${item.brand} ${item.model}. Upload an image to continue.`
     );
     setActiveWishForArchive(item.id);
-
-    const uploadEl = document.getElementById("upload-panel");
-    uploadEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToUploadPanel();
   }
 
   async function loadUser() {
@@ -854,6 +986,7 @@ export default function AppPage() {
       clearCurrentBagState();
       clearWishlistForm();
       cancelEditingWishlist();
+      setJustSaved(false);
       loadUser();
       loadCollection();
       loadWishlist();
@@ -873,6 +1006,7 @@ export default function AppPage() {
     setResult(null);
     setError("");
     setSaveMessage("");
+    setJustSaved(false);
 
     const reader = new FileReader();
 
@@ -994,7 +1128,8 @@ export default function AppPage() {
       setSaveMessage("Saved to your private collection.");
       setArchiveSourceMessage("");
       setActiveWishForArchive(null);
-      loadCollection();
+      setJustSaved(true);
+      await loadCollection();
     } catch (err: any) {
       setSaveMessage(err?.message || "The image could not be uploaded.");
     }
@@ -1044,7 +1179,7 @@ export default function AppPage() {
 
     clearWishlistForm();
     setWishMessage("Saved to your wishlist.");
-    loadWishlist();
+    await loadWishlist();
   }
 
   async function saveWishlistEdits(itemId: number) {
@@ -1101,7 +1236,7 @@ export default function AppPage() {
       setArchiveSourceMessage("");
     }
 
-    loadWishlist();
+    await loadWishlist();
   }
 
   async function deleteBag(bag: SavedBag) {
@@ -1121,7 +1256,7 @@ export default function AppPage() {
       return;
     }
 
-    loadCollection();
+    await loadCollection();
   }
 
   async function signOut() {
@@ -1132,6 +1267,7 @@ export default function AppPage() {
     clearCurrentBagState();
     clearWishlistForm();
     cancelEditingWishlist();
+    setJustSaved(false);
   }
 
   const totalLow = collection.reduce((sum, bag) => sum + (bag.estimated_low || 0), 0);
@@ -1148,8 +1284,6 @@ export default function AppPage() {
     if (collection.length === 0) return null;
     return [...collection].sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0))[0];
   }, [collection]);
-
-  const latestBag = collection.length > 0 ? collection[0] : null;
 
   const brands = useMemo(() => {
     const uniqueBrands = Array.from(
@@ -1328,8 +1462,7 @@ export default function AppPage() {
             <OnboardingCard
               userEmail={userEmail}
               onStart={() => {
-                const el = document.getElementById("upload-panel");
-                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                scrollToUploadPanel();
               }}
               onSkip={() => {
                 window.localStorage.setItem("luxelle_onboarding_hidden", "true");
@@ -1361,6 +1494,8 @@ export default function AppPage() {
                   <LoadingCard />
                   <LoadingCard />
                 </div>
+              ) : collection.length === 0 ? (
+                <EmptyArchiveState onStart={scrollToUploadPanel} />
               ) : (
                 <>
                   <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -1379,9 +1514,7 @@ export default function AppPage() {
                     <StatCard
                       label="Archive status"
                       value={
-                        collection.length === 0
-                          ? "Starting"
-                          : collection.length < 3
+                        collection.length < 3
                           ? "Early collection"
                           : collection.length < 8
                           ? "Building archive"
@@ -1670,6 +1803,10 @@ export default function AppPage() {
             </motion.section>
 
             <motion.section
+              id="wishlist-section"
+              ref={(el) => {
+                wishlistSectionRef.current = el;
+              }}
               variants={fadeUp}
               initial="initial"
               animate="animate"
@@ -1817,12 +1954,7 @@ export default function AppPage() {
                   <LoadingCard />
                 </div>
               ) : wishlist.length === 0 ? (
-                <div className="mt-8 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
-                  <div className="text-lg font-semibold">Your wishlist is still empty</div>
-                  <div className="mt-2 text-sm opacity-70">
-                    Add the bags you want to hunt so Luxelle becomes both archive and aspiration.
-                  </div>
-                </div>
+                <EmptyWishlistState onFocusWishlist={() => wishlistSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
               ) : (
                 <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                   {wishlist.map((item) => (
@@ -2061,6 +2193,9 @@ export default function AppPage() {
           <div className="space-y-8">
             <motion.section
               id="upload-panel"
+              ref={(el) => {
+                uploadPanelRef.current = el;
+              }}
               variants={fadeUp}
               initial="initial"
               animate="animate"
@@ -2072,6 +2207,16 @@ export default function AppPage() {
                 title="Add a new archive entry."
                 description="Upload an image and let Luxelle prepare a refined luxury archive record."
               />
+
+              {!preview && !result && !loading && collection.length === 0 && (
+                <div className="mt-6 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+                  <div className="text-lg font-semibold">Your first upload starts everything.</div>
+                  <div className="mt-2 text-sm leading-relaxed opacity-72">
+                    Once you add your first piece, Luxelle can begin shaping your archive,
+                    highlighting your collection, and making your dashboard feel truly personal.
+                  </div>
+                </div>
+              )}
 
               {archiveSourceMessage && (
                 <div className="mt-6 rounded-[24px] border border-[#D8C7B8] bg-[#FCF8F4] p-4 text-sm opacity-80">
@@ -2311,6 +2456,21 @@ export default function AppPage() {
 
                   {saveMessage && <div className="mt-3 text-sm opacity-80">{saveMessage}</div>}
                 </motion.div>
+              )}
+
+              {justSaved && saveMessage && (
+                <FirstSaveCelebration
+                  message={saveMessage}
+                  onUploadAnother={() => {
+                    clearCurrentBagState();
+                    setSaveMessage("");
+                    setJustSaved(false);
+                    scrollToUploadPanel();
+                  }}
+                  onGoWishlist={() => {
+                    scrollToWishlist();
+                  }}
+                />
               )}
             </motion.section>
 
