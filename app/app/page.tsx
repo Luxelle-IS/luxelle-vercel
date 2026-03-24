@@ -82,7 +82,7 @@ const BRAND_MODEL_CATALOG: Record<string, string[]> = {
     "19 Bag",
     "Wallet on Chain",
   ],
-  "Hermès": [
+  Hermès: [
     "Birkin",
     "Kelly",
     "Constance",
@@ -309,7 +309,7 @@ async function compressImage(file: File): Promise<Blob> {
 function LoadingCard() {
   return (
     <div className="animate-pulse rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
-      <div className="h-48 rounded-[20px] bg-[#EFE6DC]" />
+      <div className="h-52 rounded-[22px] bg-[#EFE6DC]" />
       <div className="mt-5 h-5 w-1/2 rounded bg-[#EFE6DC]" />
       <div className="mt-3 h-4 w-1/3 rounded bg-[#EFE6DC]" />
       <div className="mt-6 h-4 w-1/4 rounded bg-[#EFE6DC]" />
@@ -394,13 +394,13 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
     <div className="mt-6 overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
         <defs>
-          <linearGradient id="luxelleAreaApp" x1="0" x2="0" y1="0" y2="1">
+          <linearGradient id="luxelleAreaAppPolish" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#D9C8B8" stopOpacity="0.55" />
             <stop offset="100%" stopColor="#D9C8B8" stopOpacity="0.05" />
           </linearGradient>
         </defs>
 
-        <path d={areaPath} fill="url(#luxelleAreaApp)" />
+        <path d={areaPath} fill="url(#luxelleAreaAppPolish)" />
         <path
           d={path}
           fill="none"
@@ -446,44 +446,43 @@ function OnboardingCard({
       initial="initial"
       animate="animate"
       transition={{ delay: 0.08, duration: 0.45 }}
-      className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+      className="rounded-[36px] border border-black/5 bg-white/80 p-8 shadow-sm"
     >
       <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
         Welcome to Luxelle
       </div>
 
       <h2 className="mt-4 text-3xl font-semibold leading-tight md:text-4xl">
-        Your private archive
+        Your collector archive
         <br />
-        starts here.
+        begins with one piece.
       </h2>
 
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed opacity-75">
-        {userEmail
-          ? `You’re signed in as ${userEmail}.`
-          : "You’re signed in."} Add your first piece to begin building a refined
-        private archive of your luxury collection.
+        {userEmail ? `You’re signed in as ${userEmail}.` : "You’re signed in."} Add
+        your first piece to begin building a refined private archive for the bags
+        you own and the ones you’re still pursuing.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">1. Upload a piece</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            Start with a clear handbag image to create your first archive entry.
+            Start with a clear image and let Luxelle create an elegant archive starter.
           </div>
         </div>
 
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">2. Review the match</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            Luxelle suggests a likely match and prepares a directional value range.
+            See an editorial AI result with confidence cues and a directional value range.
           </div>
         </div>
 
         <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
           <div className="text-sm font-semibold">3. Build your archive</div>
           <div className="mt-3 text-sm leading-relaxed opacity-75">
-            Save acquisition cost, condition, and notes in one private place.
+            Save acquisition, condition, notes, provenance, and wishlist intent beautifully.
           </div>
         </div>
       </div>
@@ -507,6 +506,52 @@ function OnboardingCard({
         </motion.button>
       </div>
     </motion.section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  subtext,
+}: {
+  label: string;
+  value: string;
+  subtext?: string;
+}) {
+  return (
+    <motion.div
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.18 }}
+      className="rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-5"
+    >
+      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">{label}</div>
+      <div className="mt-3 text-2xl font-semibold leading-snug">{value}</div>
+      {subtext && <div className="mt-2 text-sm opacity-65">{subtext}</div>}
+    </motion.div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">{eyebrow}</div>
+      <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed opacity-70 md:text-[15px]">
+          {description}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -1168,6 +1213,8 @@ export default function AppPage() {
   }, [collection, brandFilter, conditionFilter, materialFilter, searchQuery, sortBy]);
 
   const showOnboarding = !collectionLoading && collection.length === 0 && !hideOnboarding;
+  const collectionMid = Math.round((totalLow + totalHigh) / 2);
+  const wishlistCount = wishlist.length;
 
   return (
     <motion.main
@@ -1182,24 +1229,28 @@ export default function AppPage() {
           initial="initial"
           animate="animate"
           transition={{ duration: 0.45 }}
-          className="mb-8 rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur"
+          className="mb-8 rounded-[36px] border border-black/5 bg-white/80 p-6 shadow-sm backdrop-blur md:p-7"
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-[11px] tracking-[0.35em] uppercase opacity-60">
                 Luxelle Archive
               </div>
-              <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">
-                Your private luxury
+              <h1 className="mt-4 text-4xl font-semibold leading-[1.02] tracking-[-0.03em] md:text-6xl">
+                Your luxury collection,
                 <br />
-                collection dashboard
+                curated privately.
               </h1>
-              <div className="mt-3 text-sm opacity-70">
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed opacity-72 md:text-base">
+                Archive what you own, organize what you want, and turn your collection
+                into a more elegant, more intelligent private dashboard.
+              </p>
+              <div className="mt-4 text-sm opacity-65">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Link
                 href="/settings"
                 className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
@@ -1224,6 +1275,31 @@ export default function AppPage() {
               </motion.button>
             </div>
           </div>
+
+          {!collectionLoading && (
+            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <StatCard
+                label="Collection value"
+                value={collection.length ? formatCurrency(collectionMid) : "—"}
+                subtext="Midpoint of saved archive estimates"
+              />
+              <StatCard
+                label="Pieces archived"
+                value={String(collection.length)}
+                subtext="Private luxury archive entries"
+              />
+              <StatCard
+                label="Wishlist targets"
+                value={String(wishlistCount)}
+                subtext="Pieces you are still hunting"
+              />
+              <StatCard
+                label="Average piece"
+                value={collection.length ? formatCurrency(averageValue) : "—"}
+                subtext="Average estimated archive value"
+              />
+            </div>
+          )}
         </motion.div>
 
         {!userEmail && (
@@ -1263,23 +1339,20 @@ export default function AppPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.18fr_0.82fr]">
           <div className="space-y-8">
             <motion.section
               variants={fadeUp}
               initial="initial"
               animate="animate"
               transition={{ delay: 0.08, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[36px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                  Collection Overview
-                </div>
-                <div className="text-xs opacity-50">
-                  A private archive of your most important pieces
-                </div>
-              </div>
+              <SectionHeader
+                eyebrow="Collection performance"
+                title="A refined view of your archive."
+                description="Track the shape of your collection through value, acquisition history, and your most important pieces."
+              />
 
               {collectionLoading ? (
                 <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1290,72 +1363,32 @@ export default function AppPage() {
                 </div>
               ) : (
                 <>
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {[
-                      ["Total pieces", String(collection.length)],
-                      [
-                        "Collection value",
-                        `${formatCurrency(totalLow)} – ${formatCurrency(totalHigh)}`,
-                      ],
-                      ["Total acquisition cost", formatCurrency(totalPurchasePrice)],
-                      ["Average piece value", formatCurrency(averageValue)],
-                    ].map(([label, value]) => (
-                      <motion.div
-                        key={label}
-                        whileHover={{ y: -3 }}
-                        transition={{ duration: 0.18 }}
-                        className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5"
-                      >
-                        <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                          {label}
-                        </div>
-                        <div className="mt-3 text-2xl font-semibold leading-snug">
-                          {value}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Potential performance
-                      </div>
-                      <div className="mt-3 text-lg font-semibold">
-                        {formatCurrency(potentialGainLow)} – {formatCurrency(potentialGainHigh)}
-                      </div>
-                    </motion.div>
-
-                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Signature piece
-                      </div>
-                      {mostValuableBag ? (
-                        <>
-                          <div className="mt-3 text-lg font-semibold">{mostValuableBag.brand}</div>
-                          <div className="text-sm opacity-70">{mostValuableBag.model}</div>
-                        </>
-                      ) : (
-                        <div className="mt-3 text-sm opacity-70">No pieces saved yet.</div>
-                      )}
-                    </motion.div>
-
-                    <motion.div whileHover={{ y: -3 }} className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                      <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                        Latest addition
-                      </div>
-                      {latestBag ? (
-                        <>
-                          <div className="mt-3 text-lg font-semibold">{latestBag.brand}</div>
-                          <div className="text-sm opacity-70">{latestBag.model}</div>
-                          <div className="mt-3 text-sm opacity-60">
-                            Added {formatDate(latestBag.created_at)}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="mt-3 text-sm opacity-70">No pieces saved yet.</div>
-                      )}
-                    </motion.div>
+                  <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <StatCard
+                      label="Potential performance"
+                      value={`${formatCurrency(potentialGainLow)} – ${formatCurrency(
+                        potentialGainHigh
+                      )}`}
+                      subtext="Directional gain versus total acquisition cost"
+                    />
+                    <StatCard
+                      label="Total acquisition cost"
+                      value={formatCurrency(totalPurchasePrice)}
+                      subtext="Across all saved pieces"
+                    />
+                    <StatCard
+                      label="Archive status"
+                      value={
+                        collection.length === 0
+                          ? "Starting"
+                          : collection.length < 3
+                          ? "Early collection"
+                          : collection.length < 8
+                          ? "Building archive"
+                          : "Established archive"
+                      }
+                      subtext="Collector progression signal"
+                    />
                   </div>
 
                   <PortfolioChart collection={collection} />
@@ -1369,35 +1402,49 @@ export default function AppPage() {
                 initial="initial"
                 animate="animate"
                 transition={{ delay: 0.12, duration: 0.45 }}
-                className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm"
+                className="overflow-hidden rounded-[36px] border border-black/5 bg-white/80 shadow-sm"
               >
-                <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr]">
-                  <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-[1.02fr_0.98fr]">
+                  <div className="p-8 md:p-10">
                     <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
                       Featured archive piece
                     </div>
-                    <div className="mt-4 text-3xl font-semibold">
+                    <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
                       {mostValuableBag.brand}
-                    </div>
-                    <div className="mt-1 text-lg opacity-75">
-                      {mostValuableBag.model}
-                    </div>
+                    </h2>
+                    <div className="mt-2 text-lg opacity-75">{mostValuableBag.model}</div>
+
                     <div className="mt-6 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
                       {getConditionLabel(mostValuableBag)}
                     </div>
-                    <div className="mt-6 text-[11px] uppercase tracking-[0.22em] opacity-55">
+
+                    <div className="mt-8 text-[11px] uppercase tracking-[0.22em] opacity-55">
                       Estimated value
                     </div>
-                    <div className="mt-2 text-xl font-semibold">
+                    <div className="mt-2 text-2xl font-semibold">
                       {formatCurrency(mostValuableBag.estimated_low)} –{" "}
                       {formatCurrency(mostValuableBag.estimated_high)}
                     </div>
-                    <div className="mt-3 text-sm opacity-60">
+
+                    {(mostValuableBag.color || mostValuableBag.material || mostValuableBag.size) && (
+                      <>
+                        <div className="mt-8 text-[11px] uppercase tracking-[0.22em] opacity-55">
+                          Archive details
+                        </div>
+                        <div className="mt-2 text-sm opacity-75">
+                          {[mostValuableBag.color, mostValuableBag.material, mostValuableBag.size]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </div>
+                      </>
+                    )}
+
+                    <div className="mt-8 text-sm opacity-60">
                       Added {formatDate(mostValuableBag.created_at)}
                     </div>
                   </div>
 
-                  <div className="min-h-[320px]">
+                  <div className="min-h-[360px]">
                     <img
                       src={mostValuableBag.image_url}
                       alt={`${mostValuableBag.brand} ${mostValuableBag.model}`}
@@ -1413,80 +1460,78 @@ export default function AppPage() {
               initial="initial"
               animate="animate"
               transition={{ delay: 0.16, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[36px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                      Collection Archive
-                    </div>
-                    <div className="mt-2 text-sm opacity-60">
-                      Curated, private, and visible only to you
-                    </div>
-                  </div>
+              <SectionHeader
+                eyebrow="Collection archive"
+                title="Search, sort, and review your pieces."
+                description="A private view of the objects you own, organized with more elegance and more clarity."
+              />
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <select
-                      value={brandFilter}
-                      onChange={(e) => setBrandFilter(e.target.value)}
-                      className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
-                    >
-                      <option value="all">All brands</option>
-                      {brands.map((brand) => (
-                        <option key={brand} value={brand}>
-                          {brand}
-                        </option>
-                      ))}
-                    </select>
+              <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-5">
+                <input
+                  type="text"
+                  placeholder="Search brand or model"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white md:col-span-2"
+                />
 
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
-                    >
-                      <option value="newest">Newest</option>
-                      <option value="highest">Highest value</option>
-                      <option value="brand">Brand A–Z</option>
-                    </select>
-                  </div>
+                <select
+                  value={brandFilter}
+                  onChange={(e) => setBrandFilter(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                >
+                  <option value="all">All brands</option>
+                  {brands.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={conditionFilter}
+                  onChange={(e) => setConditionFilter(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                >
+                  <option value="all">All conditions</option>
+                  {conditions.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={materialFilter}
+                  onChange={(e) => setMaterialFilter(e.target.value)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                >
+                  <option value="all">All materials</option>
+                  {materials.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-5">
+                <div className="md:col-span-4 rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm opacity-70">
+                  {displayedCollection.length} visible piece
+                  {displayedCollection.length === 1 ? "" : "s"} in this view
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                  <input
-                    type="text"
-                    placeholder="Search brand or model"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white md:col-span-2"
-                  />
-
-                  <select
-                    value={conditionFilter}
-                    onChange={(e) => setConditionFilter(e.target.value)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
-                  >
-                    <option value="all">All conditions</option>
-                    {conditions.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={materialFilter}
-                    onChange={(e) => setMaterialFilter(e.target.value)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
-                  >
-                    <option value="all">All materials</option>
-                    {materials.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none transition hover:bg-white"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="highest">Highest value</option>
+                  <option value="brand">Brand A–Z</option>
+                </select>
               </div>
 
               {collectionLoading ? (
@@ -1495,14 +1540,20 @@ export default function AppPage() {
                   <LoadingCard />
                 </div>
               ) : displayedCollection.length === 0 ? (
-                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
-                  <div className="text-lg font-semibold">No pieces match this view</div>
+                <div className="mt-6 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
+                  <div className="text-lg font-semibold">
+                    {collection.length === 0
+                      ? "Begin your private archive"
+                      : "No pieces match this view"}
+                  </div>
                   <div className="mt-2 text-sm opacity-70">
-                    Try clearing or changing your search and filters.
+                    {collection.length === 0
+                      ? "Add your first piece to start building a more elegant luxury archive."
+                      : "Try adjusting your search, filters, or sort settings."}
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                   {displayedCollection.map((bag) => {
                     const gainLow = getGainLow(bag);
                     const gainHigh = getGainHigh(bag);
@@ -1512,20 +1563,20 @@ export default function AppPage() {
                         key={bag.id}
                         whileHover={{ y: -4 }}
                         transition={{ duration: 0.18 }}
-                        className="overflow-hidden rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] shadow-sm"
+                        className="overflow-hidden rounded-[30px] border border-[#E7DDD3] bg-[#FCF8F4] shadow-sm"
                       >
                         {bag.image_url && (
                           <img
                             src={bag.image_url}
                             alt={`${bag.brand} ${bag.model}`}
-                            className="h-64 w-full object-cover"
+                            className="h-72 w-full object-cover"
                           />
                         )}
 
                         <div className="p-6">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-lg font-semibold">{bag.brand}</div>
+                              <div className="text-xl font-semibold">{bag.brand}</div>
                               <div className="text-base opacity-70">{bag.model}</div>
                             </div>
 
@@ -1623,23 +1674,15 @@ export default function AppPage() {
               initial="initial"
               animate="animate"
               transition={{ delay: 0.18, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[36px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                    Wishlist / Watchlist
-                  </div>
-                  <div className="mt-2 text-sm opacity-60">
-                    Pieces you want to find, acquire, or track
-                  </div>
-                </div>
-                <div className="text-sm opacity-60">
-                  {wishlist.length} item{wishlist.length === 1 ? "" : "s"}
-                </div>
-              </div>
+              <SectionHeader
+                eyebrow="Wishlist / Watchlist"
+                title="The pieces still on your radar."
+                description="Track desire with the same collector-grade care as ownership."
+              />
 
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div ref={addWishBrandWrapRef} className="relative">
                   <input
                     type="text"
@@ -1769,23 +1812,23 @@ export default function AppPage() {
               )}
 
               {wishlistLoading ? (
-                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                   <LoadingCard />
                   <LoadingCard />
                 </div>
               ) : wishlist.length === 0 ? (
-                <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
-                  <div className="text-lg font-semibold">Your wishlist is empty</div>
+                <div className="mt-8 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-8">
+                  <div className="text-lg font-semibold">Your wishlist is still empty</div>
                   <div className="mt-2 text-sm opacity-70">
-                    Add pieces you want to hunt, compare, or remember for later.
+                    Add the bags you want to hunt so Luxelle becomes both archive and aspiration.
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                   {wishlist.map((item) => (
                     <div
                       key={item.id}
-                      className={`rounded-[28px] border bg-[#FCF8F4] p-6 shadow-sm ${
+                      className={`rounded-[30px] border bg-[#FCF8F4] p-6 shadow-sm ${
                         activeWishForArchive === item.id
                           ? "border-[#BFA58B] ring-1 ring-[#D8C7B8]"
                           : "border-[#E7DDD3]"
@@ -1923,21 +1966,15 @@ export default function AppPage() {
                           </div>
 
                           {editWishMessage && (
-                            <div className="mt-3 text-sm opacity-75">
-                              {editWishMessage}
-                            </div>
+                            <div className="mt-3 text-sm opacity-75">{editWishMessage}</div>
                           )}
                         </>
                       ) : (
                         <>
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-lg font-semibold">
-                                {item.brand}
-                              </div>
-                              <div className="text-base opacity-70">
-                                {item.model}
-                              </div>
+                              <div className="text-xl font-semibold">{item.brand}</div>
+                              <div className="text-base opacity-70">{item.model}</div>
                             </div>
 
                             {item.desired_condition && (
@@ -1959,10 +1996,7 @@ export default function AppPage() {
                                 Target price
                               </div>
                               <div className="mt-2 text-sm font-medium">
-                                {formatMoneyWithCurrency(
-                                  item.target_price,
-                                  item.currency
-                                )}
+                                {formatMoneyWithCurrency(item.target_price, item.currency)}
                               </div>
                             </>
                           )}
@@ -1985,9 +2019,7 @@ export default function AppPage() {
                               <div className="mt-4 text-[11px] uppercase tracking-[0.22em] opacity-55">
                                 Notes
                               </div>
-                              <div className="mt-2 text-sm opacity-75">
-                                {item.notes}
-                              </div>
+                              <div className="mt-2 text-sm opacity-75">{item.notes}</div>
                             </>
                           )}
 
@@ -2033,22 +2065,13 @@ export default function AppPage() {
               initial="initial"
               animate="animate"
               transition={{ delay: 0.12, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[36px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Identify a Piece
-              </div>
-
-              <h2 className="mt-4 text-3xl font-semibold leading-tight">
-                Add a new piece to your
-                <br />
-                private archive
-              </h2>
-
-              <p className="mt-4 text-[15px] leading-relaxed opacity-75">
-                Upload a handbag image and Luxelle will suggest the closest match,
-                estimate a value range, and prepare it for your personal collection.
-              </p>
+              <SectionHeader
+                eyebrow="Identify a piece"
+                title="Add a new archive entry."
+                description="Upload an image and let Luxelle prepare a refined luxury archive record."
+              />
 
               {archiveSourceMessage && (
                 <div className="mt-6 rounded-[24px] border border-[#D8C7B8] bg-[#FCF8F4] p-4 text-sm opacity-80">
@@ -2057,7 +2080,7 @@ export default function AppPage() {
               )}
 
               <div className="mt-8 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-10 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
+                <label className="flex cursor-pointer items-center justify-center rounded-[24px] border border-dashed border-[#D8C7B8] bg-white px-4 py-12 text-center text-sm opacity-80 transition hover:bg-[#FAF5EF]">
                   <div>
                     <div className="font-medium">Upload a bag image</div>
                     <div className="mt-1 text-xs opacity-60">JPG, PNG, or HEIC</div>
@@ -2080,7 +2103,7 @@ export default function AppPage() {
                   <img
                     src={preview}
                     alt="Bag preview"
-                    className="h-72 w-full object-cover"
+                    className="h-80 w-full object-cover"
                   />
                 </motion.div>
               )}
@@ -2296,15 +2319,15 @@ export default function AppPage() {
               initial="initial"
               animate="animate"
               transition={{ delay: 0.16, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[36px] border border-black/5 bg-[#2C2A29] p-8 text-white shadow-sm"
             >
-              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Private by Design
+              <div className="text-[11px] tracking-[0.32em] uppercase text-white/60">
+                Private by design
               </div>
-              <div className="mt-4 space-y-3 text-sm opacity-70">
+              <div className="mt-5 space-y-3 text-sm text-white/72">
                 <p>• Your archive is visible only to your account.</p>
-                <p>• Value ranges are directional, not final resale offers.</p>
-                <p>• Each piece can be refined over time with notes and acquisition history.</p>
+                <p>• Value ranges are directional and not resale guarantees.</p>
+                <p>• Wishlist targets and owned pieces now live in one collector-grade flow.</p>
               </div>
             </motion.section>
           </div>
