@@ -2124,18 +2124,6 @@ export default function AppPage() {
 </div>
 
 <div className="mt-4">
-  <FieldLabel>Acquisition cost</FieldLabel>
-  <div className="mt-2 text-sm font-medium">
-    {bag.purchase_price !== null
-      ? formatMoneyWithCurrency(
-          bag.purchase_price,
-          bag.purchase_price_currency
-        )
-      : "Cost not added"}
-  </div>
-</div>
-
-<div className="mt-4">
   <FieldLabel>Estimated value</FieldLabel>
   <div className="mt-2 text-sm text-[#6E645B]">
     {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
