@@ -413,7 +413,7 @@ function PortfolioChart({ collection }: { collection: SavedBag[] }) {
   } L ${padding} ${height - padding} Z`;
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-4">
+    <div className="overflow-hidden rounded-[24px] border border-[#E7DDD3] bg-[linear-gradient(180deg,#FCF8F4_0%,#F7F1EA_100%)] p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
         <defs>
           <linearGradient id="luxelleArchiveChartRedesignSplit" x1="0" x2="0" y1="0" y2="1">
