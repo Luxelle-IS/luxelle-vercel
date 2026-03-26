@@ -28,6 +28,12 @@ function getMidValue(low: number, high: number) {
   return ((low || 0) + (high || 0)) / 2;
 }
 
+function truncate(text: string, max: number) {
+  if (!text) return "";
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
+}
+
 async function tryEmbedImage(pdfDoc: PDFDocument, imageUrl: string) {
   try {
     const res = await fetch(imageUrl);
@@ -60,54 +66,38 @@ export async function POST(req: Request) {
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     const colors = {
+      page: rgb(0.965, 0.945, 0.92),
+      paper: rgb(0.992, 0.987, 0.98),
+      panel: rgb(0.978, 0.968, 0.955),
+      softPanel: rgb(0.986, 0.978, 0.968),
+      line: rgb(0.88, 0.84, 0.79),
       ink: rgb(0.17, 0.16, 0.16),
       soft: rgb(0.45, 0.42, 0.39),
-      line: rgb(0.88, 0.84, 0.79),
-      card: rgb(0.985, 0.972, 0.955),
+      faint: rgb(0.62, 0.58, 0.54),
+      accent: rgb(0.90, 0.84, 0.78),
       white: rgb(1, 1, 1),
-      accent: rgb(0.9, 0.84, 0.78),
     };
+
+    const outerMargin = 34;
+    const x0 = 48;
+    const contentW = width - x0 * 2;
 
     page.drawRectangle({
       x: 0,
       y: 0,
       width,
       height,
-      color: rgb(0.965, 0.945, 0.92),
+      color: colors.page,
     });
 
     page.drawRectangle({
-      x: 28,
-      y: 28,
-      width: width - 56,
-      height: height - 56,
-      color: colors.white,
+      x: outerMargin,
+      y: outerMargin,
+      width: width - outerMargin * 2,
+      height: height - outerMargin * 2,
+      color: colors.paper,
       borderColor: colors.line,
       borderWidth: 1,
-    });
-
-    page.drawText("LUXELLE", {
-      x: 48,
-      y: height - 62,
-      size: 10,
-      font: fontBold,
-      color: colors.soft,
-    });
-
-    page.drawText("Collection Overview", {
-      x: 48,
-      y: height - 95,
-      size: 28,
-      font: fontBold,
-      color: colors.ink,
-    });
-
-    page.drawText("A private luxury archive summary", {
-      x: 48,
-      y: height - 118,
-      size: 11,
-      font: fontRegular,
-      color: colors.soft,
     });
 
     const totalPieces = collection.length;
@@ -128,7 +118,7 @@ export async function POST(req: Request) {
       }, new Map<string, number>())
     )
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
+      .slice(0, 4)
       .map(([brand]) => brand);
 
     const mostValuableBag =
@@ -142,121 +132,176 @@ export async function POST(req: Request) {
       .sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0))
       .slice(0, 3);
 
-    const metricY = height - 190;
-    const metricW = 150;
-    const metricH = 86;
-    const metricGap = 16;
-    const metricXs = [
-      48,
-      48 + metricW + metricGap,
-      48 + (metricW + metricGap) * 2,
-    ];
+    const generatedAt = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date());
 
-    const metrics = [
-      {
-        label: "Pieces Archived",
-        value: String(totalPieces),
-      },
-      {
-        label: "Wishlist Targets",
-        value: String(wishlistCount),
-      },
+    // Header block
+    page.drawText("LUXELLE", {
+      x: x0,
+      y: height - 58,
+      size: 10,
+      font: fontBold,
+      color: colors.soft,
+    });
+
+    page.drawText("Collection Overview", {
+      x: x0,
+      y: height - 98,
+      size: 30,
+      font: fontBold,
+      color: colors.ink,
+    });
+
+    page.drawText("Private archive dossier", {
+      x: x0,
+      y: height - 118,
+      size: 11,
+      font: fontRegular,
+      color: colors.soft,
+    });
+
+    page.drawText(`Generated ${generatedAt}`, {
+      x: width - 165,
+      y: height - 58,
+      size: 10,
+      font: fontRegular,
+      color: colors.soft,
+    });
+
+    // Soft divider
+    page.drawLine({
+      start: { x: x0, y: height - 136 },
+      end: { x: width - x0, y: height - 136 },
+      thickness: 1,
+      color: colors.line,
+    });
+
+    // Stats strip
+    const statsY = height - 208;
+    const statGap = 12;
+    const statW = (contentW - statGap * 2) / 3;
+    const statH = 64;
+
+    const stats = [
+      { label: "Pieces Archived", value: String(totalPieces) },
+      { label: "Wishlist Targets", value: String(wishlistCount) },
       {
         label: "Collection Value",
         value: `${formatCurrency(totalLow)} – ${formatCurrency(totalHigh)}`,
       },
     ];
 
-    metrics.forEach((metric, i) => {
-      const x = metricXs[i];
+    stats.forEach((stat, i) => {
+      const x = x0 + i * (statW + statGap);
+
       page.drawRectangle({
         x,
-        y: metricY,
-        width: metricW,
-        height: metricH,
-        color: colors.card,
+        y: statsY,
+        width: statW,
+        height: statH,
+        color: colors.softPanel,
         borderColor: colors.line,
         borderWidth: 1,
       });
 
-      page.drawText(metric.label, {
+      page.drawText(stat.label, {
         x: x + 14,
-        y: metricY + 58,
+        y: statsY + 43,
         size: 10,
         font: fontRegular,
         color: colors.soft,
       });
 
-      page.drawText(metric.value, {
+      page.drawText(stat.value, {
         x: x + 14,
-        y: metricY + 28,
-        size: i === 2 ? 12 : 24,
+        y: statsY + 18,
+        size: i === 2 ? 13 : 22,
         font: fontBold,
         color: colors.ink,
       });
     });
 
-    const sigX = 540;
-    const sigY = height - 290;
-    const sigW = 254;
-    const sigH = 200;
+    // Main editorial section
+    const heroY = 220;
+    const heroH = 150;
+    const leftW = 250;
+    const gap = 18;
+    const rightX = x0 + leftW + gap;
+    const rightW = contentW - leftW - gap;
 
+    // Signature piece panel
     page.drawRectangle({
-      x: sigX,
-      y: sigY,
-      width: sigW,
-      height: sigH,
-      color: colors.card,
+      x: x0,
+      y: heroY,
+      width: leftW,
+      height: heroH,
+      color: colors.panel,
       borderColor: colors.line,
       borderWidth: 1,
     });
 
     page.drawText("Signature Piece", {
-      x: sigX + 16,
-      y: sigY + sigH - 22,
+      x: x0 + 16,
+      y: heroY + heroH - 22,
       size: 10,
       font: fontRegular,
       color: colors.soft,
     });
 
     if (mostValuableBag) {
+      const imageBoxX = x0 + 16;
+      const imageBoxY = heroY + 22;
+      const imageBoxW = 96;
+      const imageBoxH = 96;
+
+      page.drawRectangle({
+        x: imageBoxX,
+        y: imageBoxY,
+        width: imageBoxW,
+        height: imageBoxH,
+        color: colors.white,
+      });
+
       const embedded = await tryEmbedImage(pdfDoc, mostValuableBag.image_url);
 
       if (embedded) {
-        const imgDims = embedded.scale(1);
-        const boxW = sigW - 32;
-        const boxH = 96;
-        const scale = Math.min(boxW / imgDims.width, boxH / imgDims.height);
-        const drawW = imgDims.width * scale;
-        const drawH = imgDims.height * scale;
+        const dims = embedded.scale(1);
+        const scale = Math.min(imageBoxW / dims.width, imageBoxH / dims.height);
+        const drawW = dims.width * scale;
+        const drawH = dims.height * scale;
 
         page.drawImage(embedded, {
-          x: sigX + 16 + (boxW - drawW) / 2,
-          y: sigY + 78 + (boxH - drawH) / 2,
+          x: imageBoxX + (imageBoxW - drawW) / 2,
+          y: imageBoxY + (imageBoxH - drawH) / 2,
           width: drawW,
           height: drawH,
         });
       } else {
         page.drawRectangle({
-          x: sigX + 16,
-          y: sigY + 78,
-          width: sigW - 32,
-          height: 96,
+          x: imageBoxX + 12,
+          y: imageBoxY + 12,
+          width: imageBoxW - 24,
+          height: imageBoxH - 24,
           color: colors.accent,
         });
       }
 
-      page.drawText(mostValuableBag.brand || "Unknown", {
-        x: sigX + 16,
-        y: sigY + 56,
+      const tx = imageBoxX + imageBoxW + 16;
+
+      page.drawText(truncate(mostValuableBag.brand || "Unknown", 16), {
+        x: tx,
+        y: heroY + 88,
         size: 18,
         font: fontBold,
         color: colors.ink,
       });
 
-      page.drawText(mostValuableBag.model || "Unknown", {
-        x: sigX + 16,
-        y: sigY + 38,
+      page.drawText(truncate(mostValuableBag.model || "Unknown", 22), {
+        x: tx,
+        y: heroY + 66,
         size: 11,
         font: fontRegular,
         color: colors.soft,
@@ -267,8 +312,8 @@ export async function POST(req: Request) {
           mostValuableBag.estimated_high
         )}`,
         {
-          x: sigX + 16,
-          y: sigY + 18,
+          x: tx,
+          y: heroY + 34,
           size: 11,
           font: fontBold,
           color: colors.ink,
@@ -276,101 +321,156 @@ export async function POST(req: Request) {
       );
     } else {
       page.drawText("No signature piece yet", {
-        x: sigX + 16,
-        y: sigY + 96,
+        x: x0 + 16,
+        y: heroY + 70,
         size: 14,
         font: fontBold,
         color: colors.ink,
       });
     }
 
-    const brandsY = 210;
-    page.drawText("Top Brands", {
-      x: 48,
-      y: brandsY + 90,
-      size: 12,
-      font: fontBold,
-      color: colors.ink,
-    });
-
-    const brandsText = topBrands.length
-      ? topBrands.join(" • ")
-      : "No brand data yet";
-
-    page.drawText(brandsText, {
-      x: 48,
-      y: brandsY + 68,
-      size: 11,
+    // Right editorial summary block
+    page.drawText("Brand Profile", {
+      x: rightX,
+      y: heroY + heroH - 18,
+      size: 10,
       font: fontRegular,
       color: colors.soft,
     });
 
+    page.drawText(
+      topBrands.length ? topBrands.join(" • ") : "No brand data yet",
+      {
+        x: rightX,
+        y: heroY + heroH - 42,
+        size: 13,
+        font: fontBold,
+        color: colors.ink,
+      }
+    );
+
+    page.drawText("Archive Notes", {
+      x: rightX,
+      y: heroY + 78,
+      size: 10,
+      font: fontRegular,
+      color: colors.soft,
+    });
+
+    const archiveSummary =
+      totalPieces === 0
+        ? "Your archive has not begun yet."
+        : totalPieces === 1
+        ? "A focused beginning with one recorded piece."
+        : totalPieces < 5
+        ? "A growing private archive with early collection depth."
+        : "An increasingly established archive with clear collector identity.";
+
+    page.drawText(archiveSummary, {
+      x: rightX,
+      y: heroY + 56,
+      size: 12,
+      font: fontRegular,
+      color: colors.ink,
+    });
+
+    page.drawText("Market context is intentionally withheld until sufficient comparable data is available.", {
+      x: rightX,
+      y: heroY + 26,
+      size: 10,
+      font: fontRegular,
+      color: colors.soft,
+      maxWidth: rightW - 10,
+      lineHeight: 14,
+    });
+
+    // Featured section
+    page.drawLine({
+      start: { x: x0, y: 198 },
+      end: { x: width - x0, y: 198 },
+      thickness: 1,
+      color: colors.line,
+    });
+
     page.drawText("Featured Archive Pieces", {
-      x: 48,
-      y: 182,
+      x: x0,
+      y: 178,
       size: 12,
       font: fontBold,
       color: colors.ink,
     });
 
-    const cardY = 42;
-    const cardW = 230;
-    const cardH = 126;
-    const gap = 16;
+    const cardY = 48;
+    const cardGap = 12;
+    const cardW = (contentW - cardGap * 2) / 3;
+    const cardH = 116;
 
     for (let i = 0; i < 3; i++) {
-      const x = 48 + i * (cardW + gap);
       const item = featuredItems[i];
+      const cardX = x0 + i * (cardW + cardGap);
 
       page.drawRectangle({
-        x,
+        x: cardX,
         y: cardY,
         width: cardW,
         height: cardH,
-        color: colors.card,
+        color: colors.softPanel,
         borderColor: colors.line,
         borderWidth: 1,
       });
 
       if (!item) continue;
 
+      const imageBoxX = cardX + 14;
+      const imageBoxY = cardY + 16;
+      const imageBoxW = 72;
+      const imageBoxH = 84;
+
+      page.drawRectangle({
+        x: imageBoxX,
+        y: imageBoxY,
+        width: imageBoxW,
+        height: imageBoxH,
+        color: colors.white,
+      });
+
       const embedded = await tryEmbedImage(pdfDoc, item.image_url);
 
       if (embedded) {
-        const imgDims = embedded.scale(1);
-        const boxW = 70;
-        const boxH = 86;
-        const scale = Math.min(boxW / imgDims.width, boxH / imgDims.height);
-        const drawW = imgDims.width * scale;
-        const drawH = imgDims.height * scale;
+        const dims = embedded.scale(1);
+        const scale = Math.min(imageBoxW / dims.width, imageBoxH / dims.height);
+        const drawW = dims.width * scale;
+        const drawH = dims.height * scale;
 
         page.drawImage(embedded, {
-          x: x + 14 + (boxW - drawW) / 2,
-          y: cardY + 20 + (boxH - drawH) / 2,
+          x: imageBoxX + (imageBoxW - drawW) / 2,
+          y: imageBoxY + (imageBoxH - drawH) / 2,
           width: drawW,
           height: drawH,
         });
       } else {
         page.drawRectangle({
-          x: x + 14,
-          y: cardY + 20,
-          width: 70,
-          height: 86,
+          x: imageBoxX + 10,
+          y: imageBoxY + 10,
+          width: imageBoxW - 20,
+          height: imageBoxH - 20,
           color: colors.accent,
         });
       }
 
-      page.drawText(item.brand || "Unknown", {
-        x: x + 96,
-        y: cardY + 88,
-        size: 14,
+      const tx = cardX + 96;
+
+      page.drawText(truncate(item.brand || "Unknown", 18), {
+        x: tx,
+        y: cardY + 78,
+        size: 13,
         font: fontBold,
         color: colors.ink,
       });
 
-      page.drawText(item.model || "Unknown", {
-        x: x + 96,
-        y: cardY + 68,
+      page.drawText(truncate(item.model || "Unknown", 20), {
+        x: tx,
+        y: cardY + 58,
         size: 10,
         font: fontRegular,
         color: colors.soft,
@@ -381,8 +481,8 @@ export async function POST(req: Request) {
           item.estimated_high
         )}`,
         {
-          x: x + 96,
-          y: cardY + 44,
+          x: tx,
+          y: cardY + 34,
           size: 10,
           font: fontBold,
           color: colors.ink,
@@ -394,8 +494,8 @@ export async function POST(req: Request) {
           getMidValue(item.estimated_low, item.estimated_high)
         )}`,
         {
-          x: x + 96,
-          y: cardY + 24,
+          x: tx,
+          y: cardY + 16,
           size: 9,
           font: fontRegular,
           color: colors.soft,
@@ -404,8 +504,8 @@ export async function POST(req: Request) {
     }
 
     page.drawText("Generated by Luxelle", {
-      x: width - 160,
-      y: 18,
+      x: width - 128,
+      y: 20,
       size: 9,
       font: fontRegular,
       color: colors.soft,
