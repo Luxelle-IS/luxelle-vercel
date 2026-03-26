@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 
 type SavedBag = {
@@ -25,6 +25,11 @@ type SavedBag = {
   material: string | null;
   size: string | null;
   provenance_notes: string | null;
+};
+
+const fadeUp = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
 };
 
 function formatCurrency(value: number) {
@@ -62,13 +67,86 @@ function formatConfidence(confidence: string) {
   return "Low confidence";
 }
 
-const fadeUp = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-};
+function getPerformanceTone(value: number | null) {
+  if (value == null) return "text-[#2C2A29]";
+  if (value > 0) return "text-emerald-700";
+  if (value < 0) return "text-amber-700";
+  return "text-[#2C2A29]";
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11px] uppercase tracking-[0.24em] text-[#8B7E72]">
+      {children}
+    </div>
+  );
+}
+
+function InfoCard({
+  label,
+  value,
+  subtext,
+}: {
+  label: string;
+  value: React.ReactNode;
+  subtext?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="mt-3 text-lg font-semibold leading-snug">{value}</div>
+      {subtext ? (
+        <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+          {subtext}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DetailBlock({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EditField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="mt-2">{children}</div>
+    </div>
+  );
+}
+
+function EmptyStateCard({ message }: { message: string }) {
+  return (
+    <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+      <div className="text-sm text-[#6E645B]">{message}</div>
+    </div>
+  );
+}
 
 export default function BagDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const bagId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [bag, setBag] = useState<SavedBag | null>(null);
@@ -87,6 +165,18 @@ export default function BagDetailPage() {
   const [size, setSize] = useState("");
   const [provenanceNotes, setProvenanceNotes] = useState("");
   const [message, setMessage] = useState("");
+
+  function hydrateEditFields(data: SavedBag) {
+    setPurchasePrice(data.purchase_price !== null ? String(data.purchase_price) : "");
+    setPurchasePriceCurrency(data.purchase_price_currency || "USD");
+    setPurchaseDate(data.purchase_date || "");
+    setCondition(data.condition || "Excellent");
+    setNotes(data.notes || "");
+    setColor(data.color || "");
+    setMaterial(data.material || "");
+    setSize(data.size || "");
+    setProvenanceNotes(data.provenance_notes || "");
+  }
 
   async function loadBag() {
     setLoading(true);
@@ -124,17 +214,7 @@ export default function BagDetailPage() {
     }
 
     setBag(data);
-    setPurchasePrice(
-      data.purchase_price !== null ? String(data.purchase_price) : ""
-    );
-    setPurchasePriceCurrency(data.purchase_price_currency || "USD");
-    setPurchaseDate(data.purchase_date || "");
-    setCondition(data.condition || "Excellent");
-    setNotes(data.notes || "");
-    setColor(data.color || "");
-    setMaterial(data.material || "");
-    setSize(data.size || "");
-    setProvenanceNotes(data.provenance_notes || "");
+    hydrateEditFields(data);
     setLoading(false);
   }
 
@@ -185,7 +265,7 @@ export default function BagDetailPage() {
       return;
     }
 
-    window.location.href = "/app";
+    router.push("/app");
   }
 
   const gainLow =
@@ -198,60 +278,103 @@ export default function BagDetailPage() {
       ? bag.estimated_high - bag.purchase_price
       : null;
 
+  const acquisitionValue = useMemo(() => {
+    if (!bag || bag.purchase_price === null) return "Not added";
+    return formatMoneyWithCurrency(bag.purchase_price, bag.purchase_price_currency);
+  }, [bag]);
+
+  const archiveDetails = useMemo(() => {
+    if (!bag) return [];
+    return [
+      bag.color ? `Color: ${bag.color}` : null,
+      bag.material ? `Material: ${bag.material}` : null,
+      bag.size ? `Size: ${bag.size}` : null,
+    ].filter(Boolean) as string[];
+  }, [bag]);
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45 }}
-      className="min-h-screen bg-[#F6F1EB] text-[#2C2A29] px-5 py-8 md:px-6 md:py-10"
+      className="min-h-screen bg-[#F6F1EB] px-5 py-8 text-[#2C2A29] md:px-6 md:py-10"
     >
-      <div className="mx-auto w-full max-w-6xl">
-        <motion.div
+      <div className="mx-auto w-full max-w-7xl">
+        <motion.section
           variants={fadeUp}
           initial="initial"
           animate="animate"
           transition={{ duration: 0.45 }}
-          className="mb-8 flex items-center justify-between rounded-[32px] border border-black/5 bg-white/80 p-6 shadow-sm"
+          className="mb-8 overflow-hidden rounded-[38px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.90)_0%,rgba(250,245,239,0.92)_100%)] shadow-sm"
         >
-          <div>
-            <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-              Luxelle
+          <div className="flex flex-col gap-6 p-6 md:flex-row md:items-end md:justify-between md:p-8">
+            <div className="max-w-3xl">
+              <div className="text-[11px] uppercase tracking-[0.35em] text-[#8B7E72]">
+                Luxelle Archive
+              </div>
+              <h1 className="mt-4 text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-5xl">
+                A private record
+                <br />
+                of a single piece.
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
+                Review valuation, acquisition context, provenance, and archive
+                details in one refined collector view.
+              </p>
+              <div className="mt-5 text-sm text-[#7A6F65]">
+                {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
+              </div>
             </div>
-            <div className="mt-2 text-sm opacity-70">
-              {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/app"
+                className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
+              >
+                Back to dashboard
+              </Link>
             </div>
           </div>
-
-          <Link
-            href="/app"
-            className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
-          >
-            Back to dashboard
-          </Link>
-        </motion.div>
+        </motion.section>
 
         {loading ? (
-          <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-            Loading piece...
-          </div>
+          <EmptyStateCard message="Loading piece..." />
         ) : error ? (
           <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-            <div className="text-red-700">{error}</div>
+            <div className="text-sm text-red-700">{error}</div>
           </div>
         ) : bag ? (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.02fr_0.98fr]">
             <motion.section
               variants={fadeUp}
               initial="initial"
               animate="animate"
               transition={{ delay: 0.05, duration: 0.45 }}
-              className="overflow-hidden rounded-[32px] border border-black/5 bg-white/80 shadow-sm"
+              className="space-y-8"
             >
-              <img
-                src={bag.image_url}
-                alt={`${bag.brand} ${bag.model}`}
-                className="h-full min-h-[420px] w-full object-cover"
-              />
+              <div className="overflow-hidden rounded-[34px] border border-black/5 bg-white/80 shadow-sm">
+                <div className="aspect-[4/5] w-full bg-[#EEE5DA]">
+                  <img
+                    src={bag.image_url}
+                    alt={`${bag.brand} ${bag.model}`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[34px] border border-black/5 bg-white/80 p-8 shadow-sm">
+                <FieldLabel>Collector notes</FieldLabel>
+                <div className="mt-4 space-y-4">
+                  <DetailBlock label="Personal notes">
+                    {bag.notes || "No personal notes have been added yet."}
+                  </DetailBlock>
+
+                  <DetailBlock label="Provenance / receipt notes">
+                    {bag.provenance_notes ||
+                      "No provenance notes have been added yet."}
+                  </DetailBlock>
+                </div>
+              </div>
             </motion.section>
 
             <motion.section
@@ -259,116 +382,87 @@ export default function BagDetailPage() {
               initial="initial"
               animate="animate"
               transition={{ delay: 0.08, duration: 0.45 }}
-              className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm"
+              className="rounded-[34px] border border-black/5 bg-white/80 p-8 shadow-sm"
             >
-              <div className="text-[11px] tracking-[0.32em] uppercase opacity-60">
-                Piece Details
+              <div className="text-[11px] uppercase tracking-[0.32em] text-[#8B7E72]">
+                Piece details
               </div>
 
-              <h1 className="mt-4 text-3xl font-semibold leading-tight">
+              <h2 className="mt-4 text-4xl font-semibold leading-tight tracking-[-0.03em]">
                 {bag.brand}
-              </h1>
-              <div className="mt-1 text-xl opacity-75">{bag.model}</div>
+              </h2>
+              <div className="mt-2 text-xl text-[#6E645B]">{bag.model}</div>
 
-              <div className="mt-6 inline-block rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
-                {bag.condition || "Excellent"}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-xs uppercase tracking-wide">
+                  {bag.condition || "Excellent"}
+                </div>
+                <div className="rounded-full border border-[#E7DDD3] bg-white px-3 py-1 text-xs uppercase tracking-wide">
+                  {formatConfidence(bag.confidence)}
+                </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Estimated value
-                  </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(bag.estimated_low)} –{" "}
-                    {formatCurrency(bag.estimated_high)}
-                  </div>
-                </div>
+              <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoCard
+                  label="Estimated value"
+                  value={
+                    <>
+                      {formatCurrency(bag.estimated_low)} –{" "}
+                      {formatCurrency(bag.estimated_high)}
+                    </>
+                  }
+                  subtext="Directional valuation range for archive purposes"
+                />
 
-                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Confidence
-                  </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {formatConfidence(bag.confidence)}
-                  </div>
-                </div>
+                <InfoCard
+                  label="Acquisition cost"
+                  value={acquisitionValue}
+                  subtext={
+                    bag.purchase_price !== null
+                      ? "Recorded purchase value"
+                      : "Add this to compare acquisition against current estimate"
+                  }
+                />
 
-                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Acquisition cost
-                  </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {bag.purchase_price !== null
-                      ? formatMoneyWithCurrency(
-                          bag.purchase_price,
-                          bag.purchase_price_currency
-                        )
-                      : "Not added"}
-                  </div>
-                </div>
+                <InfoCard
+                  label="Added to archive"
+                  value={formatDate(bag.created_at)}
+                />
 
-                <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Added to archive
-                  </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {formatDate(bag.created_at)}
-                  </div>
-                </div>
-
-                {bag.purchase_date && (
-                  <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                      Purchase date
-                    </div>
-                    <div className="mt-3 text-lg font-semibold">
-                      {formatDate(bag.purchase_date)}
-                    </div>
-                  </div>
-                )}
-
-                {(bag.color || bag.material || bag.size) && (
-                  <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                      Archive details
-                    </div>
-                    <div className="mt-3 text-sm leading-relaxed opacity-80">
-                      {bag.color && <div>Color: {bag.color}</div>}
-                      {bag.material && <div>Material: {bag.material}</div>}
-                      {bag.size && <div>Size: {bag.size}</div>}
-                    </div>
-                  </div>
-                )}
+                <InfoCard
+                  label="Purchase date"
+                  value={bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"}
+                />
               </div>
 
               {bag.purchase_price !== null && (
                 <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                    Performance potential
+                  <FieldLabel>Performance potential</FieldLabel>
+                  <div
+                    className={`mt-3 text-lg font-semibold ${getPerformanceTone(
+                      gainHigh
+                    )}`}
+                  >
+                    {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
                   </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {formatCurrency(gainLow ?? 0)} –{" "}
-                    {formatCurrency(gainHigh ?? 0)}
+                  <div className="mt-2 text-sm text-[#6E645B]">
+                    Directional movement versus recorded acquisition cost
                   </div>
                 </div>
               )}
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                  Personal notes
-                </div>
-                <div className="mt-3 text-sm opacity-75">
-                  {bag.notes || "No notes have been added yet."}
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                  Provenance / receipt notes
-                </div>
-                <div className="mt-3 text-sm opacity-75">
-                  {bag.provenance_notes || "No provenance notes have been added yet."}
+                <FieldLabel>Archive details</FieldLabel>
+                <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+                  {archiveDetails.length > 0 ? (
+                    <div className="space-y-2">
+                      {archiveDetails.map((item) => (
+                        <div key={item}>{item}</div>
+                      ))}
+                    </div>
+                  ) : (
+                    "No archive details have been added yet."
+                  )}
                 </div>
               </div>
 
@@ -378,7 +472,10 @@ export default function BagDetailPage() {
                     <motion.button
                       whileHover={{ y: -1 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setEditing(true)}
+                      onClick={() => {
+                        setEditing(true);
+                        setMessage("");
+                      }}
                       className="rounded-2xl bg-[#2C2A29] px-4 py-3 text-white transition hover:opacity-90"
                     >
                       Edit details
@@ -394,93 +491,115 @@ export default function BagDetailPage() {
                     </motion.button>
                   </div>
                 ) : (
-                  <div className="space-y-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                    <div className="text-[11px] uppercase tracking-[0.22em] opacity-55">
-                      Edit details
+                  <div className="rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+                    <FieldLabel>Edit details</FieldLabel>
+
+                    <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <EditField label="Acquisition cost">
+                        <input
+                          type="number"
+                          placeholder="Optional"
+                          value={purchasePrice}
+                          onChange={(e) => setPurchasePrice(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
+
+                      <EditField label="Currency">
+                        <select
+                          value={purchasePriceCurrency}
+                          onChange={(e) => setPurchasePriceCurrency(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="CHF">CHF</option>
+                          <option value="AED">AED</option>
+                        </select>
+                      </EditField>
+
+                      <EditField label="Purchase date">
+                        <input
+                          type="date"
+                          value={purchaseDate}
+                          onChange={(e) => setPurchaseDate(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
+
+                      <EditField label="Condition">
+                        <select
+                          value={condition}
+                          onChange={(e) => setCondition(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        >
+                          <option>Excellent</option>
+                          <option>Very good</option>
+                          <option>Good</option>
+                          <option>Fair</option>
+                          <option>Collector piece</option>
+                        </select>
+                      </EditField>
+
+                      <EditField label="Color">
+                        <input
+                          type="text"
+                          placeholder="Optional"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
+
+                      <EditField label="Material">
+                        <input
+                          type="text"
+                          placeholder="Optional"
+                          value={material}
+                          onChange={(e) => setMaterial(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
+
+                      <div className="sm:col-span-2">
+                        <EditField label="Size">
+                          <input
+                            type="text"
+                            placeholder="Optional"
+                            value={size}
+                            onChange={(e) => setSize(e.target.value)}
+                            className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                          />
+                        </EditField>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <input
-                        type="number"
-                        placeholder="Acquisition cost"
-                        value={purchasePrice}
-                        onChange={(e) => setPurchasePrice(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      />
-
-                      <select
-                        value={purchasePriceCurrency}
-                        onChange={(e) => setPurchasePriceCurrency(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="CHF">CHF</option>
-                        <option value="AED">AED</option>
-                      </select>
-
-                      <input
-                        type="date"
-                        value={purchaseDate}
-                        onChange={(e) => setPurchaseDate(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      />
-
-                      <select
-                        value={condition}
-                        onChange={(e) => setCondition(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      >
-                        <option>Excellent</option>
-                        <option>Very good</option>
-                        <option>Good</option>
-                        <option>Fair</option>
-                        <option>Collector piece</option>
-                      </select>
-
-                      <input
-                        type="text"
-                        placeholder="Color"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      />
-
-                      <input
-                        type="text"
-                        placeholder="Material"
-                        value={material}
-                        onChange={(e) => setMaterial(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                      />
-
-                      <input
-                        type="text"
-                        placeholder="Size"
-                        value={size}
-                        onChange={(e) => setSize(e.target.value)}
-                        className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none sm:col-span-2"
-                      />
+                    <div className="mt-4">
+                      <EditField label="Personal notes">
+                        <textarea
+                          rows={4}
+                          placeholder="Optional notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
                     </div>
 
-                    <textarea
-                      rows={3}
-                      placeholder="Personal notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                    />
+                    <div className="mt-4">
+                      <EditField label="Provenance / receipt notes">
+                        <textarea
+                          rows={4}
+                          placeholder="Boutique, receipt, year, provenance, serial details, etc."
+                          value={provenanceNotes}
+                          onChange={(e) => setProvenanceNotes(e.target.value)}
+                          className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+                        />
+                      </EditField>
+                    </div>
 
-                    <textarea
-                      rows={3}
-                      placeholder="Provenance / receipt notes"
-                      value={provenanceNotes}
-                      onChange={(e) => setProvenanceNotes(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
-                    />
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <motion.button
                         whileTap={{ scale: 0.98 }}
                         onClick={saveChanges}
@@ -488,21 +607,12 @@ export default function BagDetailPage() {
                       >
                         Save changes
                       </motion.button>
+
                       <motion.button
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           setEditing(false);
-                          setPurchasePrice(
-                            bag.purchase_price !== null ? String(bag.purchase_price) : ""
-                          );
-                          setPurchasePriceCurrency(bag.purchase_price_currency || "USD");
-                          setPurchaseDate(bag.purchase_date || "");
-                          setCondition(bag.condition || "Excellent");
-                          setNotes(bag.notes || "");
-                          setColor(bag.color || "");
-                          setMaterial(bag.material || "");
-                          setSize(bag.size || "");
-                          setProvenanceNotes(bag.provenance_notes || "");
+                          hydrateEditFields(bag);
                           setMessage("");
                         }}
                         className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3"
@@ -513,7 +623,9 @@ export default function BagDetailPage() {
                   </div>
                 )}
 
-                {message && <div className="mt-3 text-sm opacity-75">{message}</div>}
+                {message && (
+                  <div className="mt-3 text-sm text-[#6E645B]">{message}</div>
+                )}
               </div>
             </motion.section>
           </div>
