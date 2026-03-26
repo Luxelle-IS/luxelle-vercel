@@ -171,7 +171,9 @@ export default function BagDetailPage() {
   const [message, setMessage] = useState("");
 
   function hydrateEditFields(data: SavedBag) {
-    setPurchasePrice(data.purchase_price !== null ? String(data.purchase_price) : "");
+    setPurchasePrice(
+      data.purchase_price !== null ? String(data.purchase_price) : ""
+    );
     setPurchasePriceCurrency(data.purchase_price_currency || "USD");
     setPurchaseDate(data.purchase_date || "");
     setCondition(data.condition || "Excellent");
@@ -231,29 +233,52 @@ export default function BagDetailPage() {
 
     setMessage("");
 
-    const { error } = await supabase
-      .from("bags")
-      .update({
-        purchase_price: purchasePrice ? Number(purchasePrice) : null,
-        purchase_price_currency: purchasePriceCurrency || "USD",
-        purchase_date: purchaseDate || null,
-        condition,
-        notes: notes.trim() || null,
-        color: color.trim() || null,
-        material: material.trim() || null,
-        size: size.trim() || null,
-        provenance_notes: provenanceNotes.trim() || null,
-      })
-      .eq("id", bag.id);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (error) {
-      setMessage("Changes could not be saved.");
+    if (userError || !user) {
+      setMessage("Please log out and back in before saving.");
+      console.error("Auth error:", userError);
       return;
     }
 
-    setMessage("Details updated.");
+    const updatePayload = {
+      purchase_price: purchasePrice ? Number(purchasePrice) : null,
+      purchase_price_currency: purchasePriceCurrency || "USD",
+      purchase_date: purchaseDate || null,
+      condition,
+      notes: notes.trim() || null,
+      color: color.trim() || null,
+      material: material.trim() || null,
+      size: size.trim() || null,
+      provenance_notes: provenanceNotes.trim() || null,
+    };
+
+    const { data, error } = await supabase
+      .from("bags")
+      .update(updatePayload)
+      .eq("id", bag.id)
+      .eq("user_id", user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Save error:", error);
+      setMessage(`Changes could not be saved: ${error.message}`);
+      return;
+    }
+
+    if (!data) {
+      setMessage("Changes were sent, but no updated record was returned.");
+      return;
+    }
+
+    setBag(data as SavedBag);
+    hydrateEditFields(data as SavedBag);
     setEditing(false);
-    await loadBag();
+    setMessage("Archive details updated.");
   }
 
   async function deleteBag() {
@@ -319,7 +344,8 @@ export default function BagDetailPage() {
                 of a single piece.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
-               Review acquisition, archive detail, provenance, and directional value in one refined collector view.
+                Review acquisition, archive detail, provenance, and directional
+                value in one refined collector view.
               </p>
               <div className="mt-5 text-sm text-[#7A6F65]">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
@@ -412,8 +438,7 @@ export default function BagDetailPage() {
                   </DetailBlock>
 
                   <DetailBlock label="Provenance / receipt notes">
-                    {bag.provenance_notes ||
-                      "No provenance notes added yet."}
+                    {bag.provenance_notes || "No provenance notes added yet."}
                   </DetailBlock>
                 </div>
               </AppCard>
@@ -444,52 +469,55 @@ export default function BagDetailPage() {
                 </div>
               </div>
 
-  <div className="mt-8">
-  <FieldLabel>Acquisition cost</FieldLabel>
-  <div className="mt-3 text-3xl font-semibold leading-tight">
-    {acquisitionValue}
-  </div>
-  <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
-    Your recorded purchase amount for this piece.
-  </div>
-</div>
+              <div className="mt-8">
+                <FieldLabel>Acquisition cost</FieldLabel>
+                <div className="mt-3 text-3xl font-semibold leading-tight">
+                  {acquisitionValue}
+                </div>
+                <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+                  Your recorded purchase amount for this piece.
+                </div>
+              </div>
 
-<div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-  <FieldLabel>Estimated value</FieldLabel>
-  <div className="mt-3 text-lg font-semibold">
-    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
-  </div>
-  <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
-    Directional estimate only. Market-validated resale pricing coming later.
-  </div>
-</div>
+              <div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <FieldLabel>Estimated value</FieldLabel>
+                <div className="mt-3 text-lg font-semibold">
+                  {formatCurrency(bag.estimated_low)} –{" "}
+                  {formatCurrency(bag.estimated_high)}
+                </div>
+                <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+                  Directional estimate only. Market-validated resale pricing
+                  coming later.
+                </div>
+              </div>
 
               <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-<InfoCard
-  label="Purchase date"
-  value={
-    bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"
-  }
-/>
+                <InfoCard
+                  label="Purchase date"
+                  value={
+                    bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"
+                  }
+                />
 
-<InfoCard
-  label="Added to archive"
-  value={formatDate(bag.created_at)}
-/>
+                <InfoCard
+                  label="Added to archive"
+                  value={formatDate(bag.created_at)}
+                />
 
-<InfoCard
-  label="Confidence"
-  value={formatConfidence(bag.confidence)}
-  subtext={
-    bag.confidence_reason || "Confidence context will appear here when available."
-  }
-/>
+                <InfoCard
+                  label="Confidence"
+                  value={formatConfidence(bag.confidence)}
+                  subtext={
+                    bag.confidence_reason ||
+                    "Confidence context will appear here when available."
+                  }
+                />
 
-<InfoCard
-  label="Market context"
-  value="Coming soon"
-  subtext="Comparable resale data will appear here once available."
-/>
+                <InfoCard
+                  label="Market context"
+                  value="Coming soon"
+                  subtext="Comparable resale data will appear here later."
+                />
               </div>
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
@@ -549,7 +577,9 @@ export default function BagDetailPage() {
                       <EditField label="Currency">
                         <select
                           value={purchasePriceCurrency}
-                          onChange={(e) => setPurchasePriceCurrency(e.target.value)}
+                          onChange={(e) =>
+                            setPurchasePriceCurrency(e.target.value)
+                          }
                           className="w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                         >
                           <option value="USD">USD</option>
