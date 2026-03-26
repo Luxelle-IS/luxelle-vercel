@@ -228,58 +228,50 @@ export default function BagDetailPage() {
     loadBag();
   }, [bagId]);
 
-  async function saveChanges() {
-    if (!bag) return;
+async function saveChanges() {
+  if (!bag) return;
 
-    setMessage("");
+  setMessage("");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      setMessage("Please log out and back in before saving.");
-      console.error("Auth error:", userError);
-      return;
-    }
-
-    const updatePayload = {
-      purchase_price: purchasePrice ? Number(purchasePrice) : null,
-      purchase_price_currency: purchasePriceCurrency || "USD",
-      purchase_date: purchaseDate || null,
-      condition,
-      notes: notes.trim() || null,
-      color: color.trim() || null,
-      material: material.trim() || null,
-      size: size.trim() || null,
-      provenance_notes: provenanceNotes.trim() || null,
-    };
-
-    const { data, error } = await supabase
-      .from("bags")
-      .update(updatePayload)
-      .eq("id", bag.id)
-      .eq("user_id", user.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Save error:", error);
-      setMessage(`Changes could not be saved: ${error.message}`);
-      return;
-    }
-
-    if (!data) {
-      setMessage("Changes were sent, but no updated record was returned.");
-      return;
-    }
-
-    setBag(data as SavedBag);
-    hydrateEditFields(data as SavedBag);
-    setEditing(false);
-    setMessage("Archive details updated.");
+  if (userError || !user) {
+    setMessage("Please log out and back in before saving.");
+    console.error("Auth error:", userError);
+    return;
   }
+
+  const updatePayload = {
+    purchase_price: purchasePrice ? Number(purchasePrice) : null,
+    purchase_price_currency: purchasePriceCurrency || "USD",
+    purchase_date: purchaseDate || null,
+    condition,
+    notes: notes.trim() || null,
+    color: color.trim() || null,
+    material: material.trim() || null,
+    size: size.trim() || null,
+    provenance_notes: provenanceNotes.trim() || null,
+  };
+
+  const { error } = await supabase
+    .from("bags")
+    .update(updatePayload)
+    .eq("id", bag.id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Save error:", error);
+    setMessage(`Changes could not be saved: ${error.message}`);
+    return;
+  }
+
+  await loadBag();
+  setEditing(false);
+  setMessage("Archive details updated.");
+}
 
   async function deleteBag() {
     if (!bag) return;
