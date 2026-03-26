@@ -445,57 +445,52 @@ export default function BagDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-8">
-                <FieldLabel>Estimated value</FieldLabel>
-                <div className="mt-3 text-3xl font-semibold leading-tight">
-                  {formatCurrency(bag.estimated_low)} –{" "}
-                  {formatCurrency(bag.estimated_high)}
-                </div>
-                <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
-                  Directional valuation range for archive purposes.
-                </div>
-              </div>
+  <div className="mt-8">
+  <FieldLabel>Acquisition cost</FieldLabel>
+  <div className="mt-3 text-3xl font-semibold leading-tight">
+    {acquisitionValue}
+  </div>
+  <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+    Your recorded purchase amount for this piece.
+  </div>
+</div>
 
-              <div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <FieldLabel>Market context</FieldLabel>
-                <div className="mt-3 text-lg font-semibold">
-                  Coming soon
-                </div>
-                <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
-                  Comparable market data will appear here once available.
-                </div>
-              </div>
+<div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+  <FieldLabel>Estimated value</FieldLabel>
+  <div className="mt-3 text-lg font-semibold">
+    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+  </div>
+  <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+    Directional estimate only. Market-validated resale pricing coming later.
+  </div>
+</div>
 
               <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <InfoCard
-                  label="Acquisition"
-                  value={acquisitionValue}
-                  subtext={
-                    bag.purchase_price !== null
-                      ? "Recorded purchase value"
-                      : "Add this to keep a complete ownership record"
-                  }
-                />
+<InfoCard
+  label="Purchase date"
+  value={
+    bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"
+  }
+/>
 
-                <InfoCard
-                  label="Purchase date"
-                  value={
-                    bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"
-                  }
-                />
+<InfoCard
+  label="Added to archive"
+  value={formatDate(bag.created_at)}
+/>
 
-                <InfoCard
-                  label="Added to archive"
-                  value={formatDate(bag.created_at)}
-                />
+<InfoCard
+  label="Confidence"
+  value={formatConfidence(bag.confidence)}
+  subtext={
+    bag.confidence_reason || "Confidence context will appear here when available."
+  }
+/>
 
-                <InfoCard
-                  label="Confidence"
-                  value={formatConfidence(bag.confidence)}
-                  subtext={
-                    bag.confidence_reason || "Confidence context will appear here when available."
-                  }
-                />
+<InfoCard
+  label="Market context"
+  value="Coming soon"
+  subtext="Comparable resale data will appear here once available."
+/>
               </div>
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">

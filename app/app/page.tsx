@@ -1451,14 +1451,14 @@ export default function AppPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                  Collection value
-                </div>
-                <div className="mt-3 text-3xl font-semibold">
-                  {collection.length ? formatCurrency(collectionMid) : "—"}
-                </div>
-    <div className="mt-2 text-sm text-[#6E645B]">
-  Midpoint estimate
+<div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
+  Collection cost
+</div>
+<div className="mt-3 text-3xl font-semibold">
+  {collection.length ? formatCurrency(totalPurchasePrice) : "—"}
+</div>
+<div className="mt-2 text-sm text-[#6E645B]">
+  Total recorded acquisition cost
 </div>
               </div>
 
@@ -2111,16 +2111,28 @@ export default function AppPage() {
 
   <div className="mt-4 h-px bg-[#E7DDD3]" />
 
-  <div className="mt-4">
-    <FieldLabel>Estimated value</FieldLabel>
-    <div className="mt-2 text-sm font-medium">
-      {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
-    </div>
+<div className="mt-4">
+  <FieldLabel>Acquisition cost</FieldLabel>
+  <div className="mt-2 text-sm font-medium">
+    {bag.purchase_price !== null
+      ? formatMoneyWithCurrency(
+          bag.purchase_price,
+          bag.purchase_price_currency
+        )
+      : "Cost not added"}
   </div>
+</div>
 
-  <div className="mt-4 text-xs text-[#8B7E72]">
-    Added {formatDate(bag.created_at)}
+<div className="mt-4">
+  <FieldLabel>Estimated value</FieldLabel>
+  <div className="mt-2 text-sm text-[#6E645B]">
+    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
   </div>
+</div>
+
+<div className="mt-4 text-xs text-[#8B7E72]">
+  Added {formatDate(bag.created_at)}
+</div>
 
   <div className="mt-5 grid grid-cols-2 gap-3">
     <motion.div whileTap={{ scale: 0.98 }}>
