@@ -5,6 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import AuthCard from "../../components/AuthCard";
+import SectionHeader from "@/components/app/SectionHeader";
+import StatCard from "@/components/app/StatCard";
+import AppShellCard from "@/components/app/AppShellCard";
+import CollectionSummaryCard from "@/components/app/CollectionSummaryCard";
 
 type IdentifyResult = {
   brand: string;
@@ -212,23 +216,6 @@ function extractStoragePath(publicUrl: string) {
 
 function getMidValue(bag: SavedBag) {
   return ((bag.estimated_low || 0) + (bag.estimated_high || 0)) / 2;
-}
-
-function getGainLow(bag: SavedBag) {
-  if (bag.purchase_price == null) return null;
-  return (bag.estimated_low || 0) - bag.purchase_price;
-}
-
-function getGainHigh(bag: SavedBag) {
-  if (bag.purchase_price == null) return null;
-  return (bag.estimated_high || 0) - bag.purchase_price;
-}
-
-function getPerformanceTone(value: number | null) {
-  if (value == null) return "text-[#2C2A29]";
-  if (value > 0) return "text-emerald-700";
-  if (value < 0) return "text-amber-700";
-  return "text-[#2C2A29]";
 }
 
 function normalizeBrandInput(input: string) {
@@ -475,22 +462,6 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppShellCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`rounded-[36px] border border-black/5 bg-white/80 shadow-sm backdrop-blur ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
 function OnboardingCard({
   userEmail,
   onStart,
@@ -571,56 +542,6 @@ function OnboardingCard({
         </motion.button>
       </div>
     </motion.section>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  subtext,
-}: {
-  label: string;
-  value: string;
-  subtext?: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.18 }}
-      className="rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-5"
-    >
-      <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-        {label}
-      </div>
-      <div className="mt-3 text-2xl font-semibold leading-snug">{value}</div>
-      {subtext && <div className="mt-2 text-sm text-[#6E645B]">{subtext}</div>}
-    </motion.div>
-  );
-}
-
-function SectionHeader({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div>
-      <div className="text-[11px] tracking-[0.32em] uppercase text-[#8B7E72]">
-        {eyebrow}
-      </div>
-      <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.02em] md:text-4xl">
-        {title}
-      </h2>
-      {description && (
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-[15px]">
-          {description}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -733,7 +654,9 @@ function FirstSaveCelebration({
       <div className="mt-3 text-2xl font-semibold tracking-[-0.02em]">
         Your piece is now part of Luxelle.
       </div>
-      <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">{message}</div>
+      <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+        {message}
+      </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button
@@ -748,152 +671,6 @@ function FirstSaveCelebration({
         >
           Build your wishlist
         </button>
-      </div>
-    </div>
-  );
-}
-
-function CollectionSummaryCard({
-  collection,
-  wishlistCount,
-  totalLow,
-  totalHigh,
-  mostValuableBag,
-  onDownload,
-  isDownloadingPdf,
-  pdfMessage,
-}: {
-  collection: SavedBag[];
-  wishlistCount: number;
-  totalLow: number;
-  totalHigh: number;
-  mostValuableBag: SavedBag | null;
-  onDownload: () => void;
-  isDownloadingPdf: boolean;
-  pdfMessage: string;
-}) {
-  const topBrands = Array.from(
-    collection.reduce((map, bag) => {
-      map.set(bag.brand, (map.get(bag.brand) || 0) + 1);
-      return map;
-    }, new Map<string, number>())
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([brand]) => brand);
-
-  return (
-    <div className="overflow-hidden rounded-[34px] border border-[#D8C7B8] bg-[linear-gradient(135deg,#FBF7F2_0%,#F1E6DA_50%,#E8D8C8_100%)] shadow-sm">
-      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="p-8 md:p-10">
-          <div className="text-[11px] uppercase tracking-[0.34em] text-[#8B7E72]">
-            Collection overview
-          </div>
-          <h3 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-4xl">
-            A private archive
-            <br />
-            worth keeping beautifully.
-          </h3>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#6E645B]">
-            Export a polished collector overview with archive size, value range,
-            leading brands, and your current signature piece.
-          </p>
-
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                Pieces archived
-              </div>
-              <div className="mt-3 text-3xl font-semibold">
-                {collection.length}
-              </div>
-            </div>
-
-            <div className="rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                Wishlist targets
-              </div>
-              <div className="mt-3 text-3xl font-semibold">{wishlistCount}</div>
-            </div>
-
-            <div className="col-span-2 rounded-[24px] border border-white/50 bg-white/55 p-5 backdrop-blur">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                Collection value range
-              </div>
-              <div className="mt-3 text-2xl font-semibold">
-                {formatCurrency(totalLow)} – {formatCurrency(totalHigh)}
-              </div>
-            </div>
-          </div>
-
-          {topBrands.length > 0 && (
-            <div className="mt-8">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                Leading brands
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {topBrands.map((brand) => (
-                  <div
-                    key={brand}
-                    className="rounded-full border border-white/60 bg-white/60 px-4 py-2 text-sm backdrop-blur"
-                  >
-                    {brand}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              onClick={onDownload}
-              disabled={isDownloadingPdf}
-              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isDownloadingPdf
-                ? "Preparing your PDF..."
-                : "Download collection overview PDF"}
-            </button>
-          </div>
-
-          {pdfMessage && (
-            <div className="mt-3 text-sm text-[#6E645B]">{pdfMessage}</div>
-          )}
-        </div>
-
-        <div className="flex min-h-[320px] items-center justify-center border-t border-white/30 p-8 lg:border-l lg:border-t-0">
-          {mostValuableBag ? (
-            <div className="w-full max-w-sm overflow-hidden rounded-[28px] border border-white/50 bg-white/65 shadow-sm backdrop-blur">
-              <img
-                src={mostValuableBag.image_url}
-                alt={`${mostValuableBag.brand} ${mostValuableBag.model}`}
-                className="h-72 w-full object-cover"
-              />
-              <div className="p-6">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                  Signature piece
-                </div>
-                <div className="mt-3 text-2xl font-semibold">
-                  {mostValuableBag.brand}
-                </div>
-                <div className="text-base text-[#6E645B]">
-                  {mostValuableBag.model}
-                </div>
-                <div className="mt-4 text-sm font-medium">
-                  {formatCurrency(mostValuableBag.estimated_low)} –{" "}
-                  {formatCurrency(mostValuableBag.estimated_high)}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-xs rounded-[26px] border border-white/60 bg-white/65 p-8 text-center shadow-sm backdrop-blur">
-              <div className="text-lg font-semibold">Your signature piece</div>
-              <div className="mt-3 text-sm text-[#6E645B]">
-                appears here once your archive begins.
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -1528,9 +1305,6 @@ export default function AppPage() {
     0
   );
 
-  const potentialGainLow = totalLow - totalPurchasePrice;
-  const potentialGainHigh = totalHigh - totalPurchasePrice;
-
   const averageValue =
     collection.length > 0
       ? Math.round((totalLow + totalHigh) / 2 / collection.length)
@@ -1541,6 +1315,18 @@ export default function AppPage() {
     return [...collection].sort(
       (a, b) => (b.estimated_high || 0) - (a.estimated_high || 0)
     )[0];
+  }, [collection]);
+
+  const topBrands = useMemo(() => {
+    return Array.from(
+      collection.reduce((map, bag) => {
+        map.set(bag.brand, (map.get(bag.brand) || 0) + 1);
+        return map;
+      }, new Map<string, number>())
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([brand]) => brand);
   }, [collection]);
 
   const brands = useMemo(() => {
@@ -1698,7 +1484,9 @@ export default function AppPage() {
                 <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
                   Wishlist targets
                 </div>
-                <div className="mt-3 text-3xl font-semibold">{wishlistCount}</div>
+                <div className="mt-3 text-3xl font-semibold">
+                  {wishlistCount}
+                </div>
                 <div className="mt-2 text-sm text-[#6E645B]">
                   Pieces still on your radar
                 </div>
@@ -1788,14 +1576,15 @@ export default function AppPage() {
             className="mb-8"
           >
             <CollectionSummaryCard
-              collection={collection}
-              wishlistCount={wishlistCount}
               totalLow={totalLow}
               totalHigh={totalHigh}
+              totalItems={collection.length}
+              wishlistCount={wishlistCount}
+              topBrands={topBrands}
               mostValuableBag={mostValuableBag}
               onDownload={handleDownloadPdf}
-              isDownloadingPdf={isDownloadingPdf}
-              pdfMessage={pdfMessage}
+              isDownloading={isDownloadingPdf}
+              message={pdfMessage}
             />
           </motion.section>
         )}
@@ -1828,11 +1617,9 @@ export default function AppPage() {
                   <>
                     <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
                       <StatCard
-                        label="Potential performance"
-                        value={`${formatCurrency(
-                          potentialGainLow
-                        )} – ${formatCurrency(potentialGainHigh)}`}
-                        subtext="Directional gain relative to recorded acquisition cost"
+                        label="Market context"
+                        value="Coming soon"
+                        subtext="Comparable market data will appear here once available."
                       />
                       <StatCard
                         label="Total acquisition cost"
@@ -2024,9 +1811,6 @@ export default function AppPage() {
                 ) : (
                   <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
                     {displayedCollection.map((bag) => {
-                      const gainLow = getGainLow(bag);
-                      const gainHigh = getGainHigh(bag);
-
                       return (
                         <motion.div
                           key={bag.id}
@@ -2069,30 +1853,23 @@ export default function AppPage() {
                             </div>
 
                             {bag.purchase_price !== null && (
-                              <>
-                                <div className="mt-4">
-                                  <FieldLabel>Acquisition cost</FieldLabel>
-                                  <div className="mt-2 text-sm font-medium">
-                                    {formatMoneyWithCurrency(
-                                      bag.purchase_price,
-                                      bag.purchase_price_currency
-                                    )}
-                                  </div>
+                              <div className="mt-4">
+                                <FieldLabel>Acquisition cost</FieldLabel>
+                                <div className="mt-2 text-sm font-medium">
+                                  {formatMoneyWithCurrency(
+                                    bag.purchase_price,
+                                    bag.purchase_price_currency
+                                  )}
                                 </div>
-
-                                <div className="mt-4">
-                                  <FieldLabel>Performance potential</FieldLabel>
-                                  <div
-                                    className={`mt-2 text-sm font-medium ${getPerformanceTone(
-                                      gainHigh
-                                    )}`}
-                                  >
-                                    {formatCurrency(gainLow ?? 0)} –{" "}
-                                    {formatCurrency(gainHigh ?? 0)}
-                                  </div>
-                                </div>
-                              </>
+                              </div>
                             )}
+
+                            <div className="mt-4">
+                              <FieldLabel>Market context</FieldLabel>
+                              <div className="mt-2 text-sm text-[#6E645B]">
+                                Comparable market data coming soon.
+                              </div>
+                            </div>
 
                             {(bag.color || bag.material || bag.size) && (
                               <div className="mt-4">
@@ -2216,7 +1993,8 @@ export default function AppPage() {
                     placeholder="Target price"
                     value={wishTargetPrice}
                     onChange={(e) => setWishTargetPrice(e.target.value)}
-                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm outline-none"
+                    className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-4 py-3 text-sm
+                    outline-none"
                   />
 
                   <select
@@ -2288,7 +2066,9 @@ export default function AppPage() {
                 </div>
 
                 {wishMessage && (
-                  <div className="mt-3 text-sm text-[#6E645B]">{wishMessage}</div>
+                  <div className="mt-3 text-sm text-[#6E645B]">
+                    {wishMessage}
+                  </div>
                 )}
 
                 {wishlistLoading ? (
@@ -2319,7 +2099,10 @@ export default function AppPage() {
                         {editingWishId === item.id ? (
                           <>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                              <div ref={editWishBrandWrapRef} className="relative">
+                              <div
+                                ref={editWishBrandWrapRef}
+                                className="relative"
+                              >
                                 <input
                                   type="text"
                                   placeholder="Brand"
@@ -2346,7 +2129,10 @@ export default function AppPage() {
                                 )}
                               </div>
 
-                              <div ref={editWishModelWrapRef} className="relative">
+                              <div
+                                ref={editWishModelWrapRef}
+                                className="relative"
+                              >
                                 <input
                                   type="text"
                                   placeholder="Model"
@@ -2413,7 +2199,9 @@ export default function AppPage() {
                                 type="text"
                                 placeholder="Color"
                                 value={editWishColor}
-                                onChange={(e) => setEditWishColor(e.target.value)}
+                                onChange={(e) =>
+                                  setEditWishColor(e.target.value)
+                                }
                                 className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                               />
 
@@ -2431,14 +2219,18 @@ export default function AppPage() {
                                 type="text"
                                 placeholder="Size"
                                 value={editWishSize}
-                                onChange={(e) => setEditWishSize(e.target.value)}
+                                onChange={(e) =>
+                                  setEditWishSize(e.target.value)
+                                }
                                 className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
                               />
 
                               <textarea
                                 placeholder="Notes"
                                 value={editWishNotes}
-                                onChange={(e) => setEditWishNotes(e.target.value)}
+                                onChange={(e) =>
+                                  setEditWishNotes(e.target.value)
+                                }
                                 rows={3}
                                 className="rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none md:col-span-2"
                               />
@@ -2822,7 +2614,9 @@ export default function AppPage() {
                     </div>
 
                     {saveMessage && (
-                      <div className="mt-3 text-sm text-[#6E645B]">{saveMessage}</div>
+                      <div className="mt-3 text-sm text-[#6E645B]">
+                        {saveMessage}
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -2854,8 +2648,14 @@ export default function AppPage() {
                 </div>
                 <div className="mt-5 space-y-3 text-sm text-white/72">
                   <p>• Your archive is visible only to your account.</p>
-                  <p>• Value ranges are directional rather than guaranteed resale outcomes.</p>
-                  <p>• Owned pieces and future targets now live in one collector-grade flow.</p>
+                  <p>
+                    • Value ranges are directional rather than guaranteed resale
+                    outcomes.
+                  </p>
+                  <p>
+                    • Owned pieces and future targets now live in one
+                    collector-grade flow.
+                  </p>
                 </div>
               </div>
             </motion.section>
