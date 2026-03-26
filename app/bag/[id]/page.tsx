@@ -25,8 +25,6 @@ type SavedBag = {
   material: string | null;
   size: string | null;
   provenance_notes: string | null;
-
-  // Optional AI/editorial fields
   description?: string | null;
   reasoning?: string | null;
   confidence_reason?: string | null;
@@ -70,13 +68,6 @@ function formatConfidence(confidence: string) {
   if (confidence === "high") return "High confidence";
   if (confidence === "medium") return "Moderate confidence";
   return "Low confidence";
-}
-
-function getPerformanceTone(value: number | null) {
-  if (value == null) return "text-[#2C2A29]";
-  if (value > 0) return "text-emerald-700";
-  if (value < 0) return "text-amber-700";
-  return "text-[#2C2A29]";
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -285,19 +276,12 @@ export default function BagDetailPage() {
     window.print();
   }
 
-  const gainLow =
-    bag && bag.purchase_price !== null
-      ? bag.estimated_low - bag.purchase_price
-      : null;
-
-  const gainHigh =
-    bag && bag.purchase_price !== null
-      ? bag.estimated_high - bag.purchase_price
-      : null;
-
   const acquisitionValue = useMemo(() => {
     if (!bag || bag.purchase_price === null) return "Not added";
-    return formatMoneyWithCurrency(bag.purchase_price, bag.purchase_price_currency);
+    return formatMoneyWithCurrency(
+      bag.purchase_price,
+      bag.purchase_price_currency
+    );
   }, [bag]);
 
   const archiveDetails = useMemo(() => {
@@ -379,11 +363,11 @@ export default function BagDetailPage() {
               className="space-y-8"
             >
               <AppCard className="overflow-hidden">
-                <div className="aspect-[4/5] w-full bg-[#EEE5DA]">
+                <div className="bg-[linear-gradient(180deg,#F7F1EA_0%,#EFE4D7_100%)]">
                   <img
                     src={bag.image_url}
                     alt={`${bag.brand} ${bag.model}`}
-                    className="h-full w-full object-cover"
+                    className="h-[560px] w-full object-contain p-8 md:p-10"
                   />
                 </div>
               </AppCard>
@@ -461,25 +445,42 @@ export default function BagDetailPage() {
                 </div>
               </div>
 
+              <div className="mt-8">
+                <FieldLabel>Estimated value</FieldLabel>
+                <div className="mt-3 text-3xl font-semibold leading-tight">
+                  {formatCurrency(bag.estimated_low)} –{" "}
+                  {formatCurrency(bag.estimated_high)}
+                </div>
+                <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
+                  Directional valuation range for archive purposes.
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                <FieldLabel>Market context</FieldLabel>
+                <div className="mt-3 text-lg font-semibold">
+                  Coming soon
+                </div>
+                <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+                  Comparable market data will appear here once available.
+                </div>
+              </div>
+
               <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoCard
-                  label="Estimated value"
-                  value={
-                    <>
-                      {formatCurrency(bag.estimated_low)} –{" "}
-                      {formatCurrency(bag.estimated_high)}
-                    </>
-                  }
-                  subtext="Directional valuation range for archive purposes"
-                />
-
-                <InfoCard
-                  label="Acquisition cost"
+                  label="Acquisition"
                   value={acquisitionValue}
                   subtext={
                     bag.purchase_price !== null
                       ? "Recorded purchase value"
-                      : "Add this to compare acquisition against current estimate"
+                      : "Add this to keep a complete ownership record"
+                  }
+                />
+
+                <InfoCard
+                  label="Purchase date"
+                  value={
+                    bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"
                   }
                 />
 
@@ -489,26 +490,13 @@ export default function BagDetailPage() {
                 />
 
                 <InfoCard
-                  label="Purchase date"
-                  value={bag.purchase_date ? formatDate(bag.purchase_date) : "Not added"}
+                  label="Confidence"
+                  value={formatConfidence(bag.confidence)}
+                  subtext={
+                    bag.confidence_reason || "Confidence context will appear here when available."
+                  }
                 />
               </div>
-
-              {bag.purchase_price !== null && (
-                <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                  <FieldLabel>Performance potential</FieldLabel>
-                  <div
-                    className={`mt-3 text-lg font-semibold ${getPerformanceTone(
-                      gainHigh
-                    )}`}
-                  >
-                    {formatCurrency(gainLow ?? 0)} – {formatCurrency(gainHigh ?? 0)}
-                  </div>
-                  <div className="mt-2 text-sm text-[#6E645B]">
-                    Directional movement versus recorded acquisition cost
-                  </div>
-                </div>
-              )}
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
                 <FieldLabel>Archive details</FieldLabel>
