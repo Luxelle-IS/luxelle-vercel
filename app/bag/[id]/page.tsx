@@ -25,6 +25,11 @@ type SavedBag = {
   material: string | null;
   size: string | null;
   provenance_notes: string | null;
+
+  // Optional AI/editorial fields
+  description?: string | null;
+  reasoning?: string | null;
+  confidence_reason?: string | null;
 };
 
 const fadeUp = {
@@ -82,6 +87,22 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-[34px] border border-black/5 bg-white/80 shadow-sm ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 function InfoCard({
   label,
   value,
@@ -132,14 +153,6 @@ function EditField({
     <div>
       <FieldLabel>{label}</FieldLabel>
       <div className="mt-2">{children}</div>
-    </div>
-  );
-}
-
-function EmptyStateCard({ message }: { message: string }) {
-  return (
-    <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
-      <div className="text-sm text-[#6E645B]">{message}</div>
     </div>
   );
 }
@@ -213,8 +226,8 @@ export default function BagDetailPage() {
       return;
     }
 
-    setBag(data);
-    hydrateEditFields(data);
+    setBag(data as SavedBag);
+    hydrateEditFields(data as SavedBag);
     setLoading(false);
   }
 
@@ -268,6 +281,10 @@ export default function BagDetailPage() {
     router.push("/app");
   }
 
+  function handleExportPiece() {
+    window.print();
+  }
+
   const gainLow =
     bag && bag.purchase_price !== null
       ? bag.estimated_low - bag.purchase_price
@@ -297,15 +314,15 @@ export default function BagDetailPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.45 }}
-      className="min-h-screen bg-[#F6F1EB] px-5 py-8 text-[#2C2A29] md:px-6 md:py-10"
+      className="min-h-screen bg-[#F6F1EB] px-5 py-8 text-[#2C2A29] md:px-6 md:py-10 print:bg-white print:px-0 print:py-0"
     >
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="mx-auto w-full max-w-7xl print:max-w-none">
         <motion.section
           variants={fadeUp}
           initial="initial"
           animate="animate"
           transition={{ duration: 0.45 }}
-          className="mb-8 overflow-hidden rounded-[38px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.90)_0%,rgba(250,245,239,0.92)_100%)] shadow-sm"
+          className="mb-8 overflow-hidden rounded-[38px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.90)_0%,rgba(250,245,239,0.92)_100%)] shadow-sm print:hidden"
         >
           <div className="flex flex-col gap-6 p-6 md:flex-row md:items-end md:justify-between md:p-8">
             <div className="max-w-3xl">
@@ -318,8 +335,8 @@ export default function BagDetailPage() {
                 of a single piece.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
-                Review valuation, acquisition context, provenance, and archive
-                details in one refined collector view.
+                Review identification, valuation, provenance, and ownership
+                detail in one refined collector view.
               </p>
               <div className="mt-5 text-sm text-[#7A6F65]">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
@@ -327,6 +344,13 @@ export default function BagDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleExportPiece}
+                className="rounded-2xl border border-[#D8C7B8] bg-white px-5 py-3 text-sm transition hover:bg-[#F8F3EE]"
+              >
+                Export / Print piece
+              </button>
+
               <Link
                 href="/app"
                 className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
@@ -338,11 +362,13 @@ export default function BagDetailPage() {
         </motion.section>
 
         {loading ? (
-          <EmptyStateCard message="Loading piece..." />
+          <AppCard className="p-8">
+            <div className="text-sm text-[#6E645B]">Loading piece...</div>
+          </AppCard>
         ) : error ? (
-          <div className="rounded-[32px] border border-black/5 bg-white/80 p-8 shadow-sm">
+          <AppCard className="p-8">
             <div className="text-sm text-red-700">{error}</div>
-          </div>
+          </AppCard>
         ) : bag ? (
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.02fr_0.98fr]">
             <motion.section
@@ -352,7 +378,7 @@ export default function BagDetailPage() {
               transition={{ delay: 0.05, duration: 0.45 }}
               className="space-y-8"
             >
-              <div className="overflow-hidden rounded-[34px] border border-black/5 bg-white/80 shadow-sm">
+              <AppCard className="overflow-hidden">
                 <div className="aspect-[4/5] w-full bg-[#EEE5DA]">
                   <img
                     src={bag.image_url}
@@ -360,10 +386,43 @@ export default function BagDetailPage() {
                     className="h-full w-full object-cover"
                   />
                 </div>
-              </div>
+              </AppCard>
 
-              <div className="rounded-[34px] border border-black/5 bg-white/80 p-8 shadow-sm">
-                <FieldLabel>Collector notes</FieldLabel>
+              {(bag.description || bag.reasoning || bag.confidence_reason) && (
+                <AppCard className="p-8">
+                  <FieldLabel>AI archive notes</FieldLabel>
+
+                  {bag.description && (
+                    <div className="mt-5">
+                      <FieldLabel>Editorial description</FieldLabel>
+                      <p className="mt-3 text-sm leading-8 text-[#6E645B]">
+                        {bag.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {bag.reasoning && (
+                    <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <FieldLabel>Identification notes</FieldLabel>
+                      <p className="mt-3 text-sm leading-7 text-[#6E645B]">
+                        {bag.reasoning}
+                      </p>
+                    </div>
+                  )}
+
+                  {bag.confidence_reason && (
+                    <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+                      <FieldLabel>Confidence context</FieldLabel>
+                      <p className="mt-3 text-sm leading-7 text-[#6E645B]">
+                        {bag.confidence_reason}
+                      </p>
+                    </div>
+                  )}
+                </AppCard>
+              )}
+
+              <AppCard className="p-8">
+                <FieldLabel>Collector record</FieldLabel>
                 <div className="mt-4 space-y-4">
                   <DetailBlock label="Personal notes">
                     {bag.notes || "No personal notes have been added yet."}
@@ -374,7 +433,7 @@ export default function BagDetailPage() {
                       "No provenance notes have been added yet."}
                   </DetailBlock>
                 </div>
-              </div>
+              </AppCard>
             </motion.section>
 
             <motion.section
