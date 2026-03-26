@@ -1414,11 +1414,10 @@ export default function AppPage() {
                 <br />
                 kept with more elegance.
               </h1>
-              <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
-                Archive what you own, organize what you want, and view your
-                collection as a private luxury record rather than a simple list.
-              </p>
-
+<p className="mt-5 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
+  Archive what you own, track what you want, and keep your collection
+  in a more elegant private record.
+</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={scrollToUploadPanel}
@@ -1458,9 +1457,9 @@ export default function AppPage() {
                 <div className="mt-3 text-3xl font-semibold">
                   {collection.length ? formatCurrency(collectionMid) : "—"}
                 </div>
-                <div className="mt-2 text-sm text-[#6E645B]">
-                  Midpoint of current archive estimates
-                </div>
+    <div className="mt-2 text-sm text-[#6E645B]">
+  Midpoint estimate
+</div>
               </div>
 
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
@@ -1470,9 +1469,9 @@ export default function AppPage() {
                 <div className="mt-3 text-3xl font-semibold">
                   {collection.length}
                 </div>
-                <div className="mt-2 text-sm text-[#6E645B]">
-                  Private collection entries
-                </div>
+            <div className="mt-2 text-sm text-[#6E645B]">
+  Saved archive pieces
+</div>
               </div>
 
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
@@ -1482,9 +1481,9 @@ export default function AppPage() {
                 <div className="mt-3 text-3xl font-semibold">
                   {wishlistCount}
                 </div>
-                <div className="mt-2 text-sm text-[#6E645B]">
-                  Pieces still on your radar
-                </div>
+            <div className="mt-2 text-sm text-[#6E645B]">
+  Current targets
+</div>
               </div>
 
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
@@ -1494,9 +1493,9 @@ export default function AppPage() {
                 <div className="mt-3 text-3xl font-semibold">
                   {collection.length ? formatCurrency(averageValue) : "—"}
                 </div>
-                <div className="mt-2 text-sm text-[#6E645B]">
-                  Average estimated archive value
-                </div>
+<div className="mt-2 text-sm text-[#6E645B]">
+  Average estimate
+</div>
               </div>
             </div>
           </div>
@@ -1574,7 +1573,7 @@ export default function AppPage() {
               <SectionHeader
                 eyebrow="Identify a piece"
                 title="Add a new archive entry."
-                description="Upload an image and let Luxelle prepare a polished archive record with identification and value guidance."
+                description="Upload an image and let Luxelle identify the piece and prepare the archive record."
               />
 
               {!preview && !result && !loading && collection.length === 0 && (
@@ -2094,82 +2093,54 @@ export default function AppPage() {
                             <img
                               src={bag.image_url}
                               alt={`${bag.brand} ${bag.model}`}
-                              className="h-72 w-full object-cover"
+                              className="h-72 w-full object-contain bg-[#F8F2EB] p-4"
                             />
                           )}
 
-                          <div className="p-6">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-xl font-semibold">
-                                  {bag.brand}
-                                </div>
-                                <div className="text-base text-[#6E645B]">
-                                  {bag.model}
-                                </div>
-                              </div>
+<div className="p-6">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <div className="text-xl font-semibold">{bag.brand}</div>
+      <div className="text-base text-[#6E645B]">{bag.model}</div>
+    </div>
 
-                              <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
-                                {getConditionLabel(bag)}
-                              </div>
-                            </div>
+    <div className="rounded-full bg-[#E8DED4] px-3 py-1 text-[11px] uppercase tracking-wide">
+      {getConditionLabel(bag)}
+    </div>
+  </div>
 
-                            <div className="mt-4 h-px bg-[#E7DDD3]" />
+  <div className="mt-4 h-px bg-[#E7DDD3]" />
 
-                            <div className="mt-4">
-                              <FieldLabel>Estimated value</FieldLabel>
-                              <div className="mt-2 text-sm font-medium">
-                                {formatCurrency(bag.estimated_low)} –{" "}
-                                {formatCurrency(bag.estimated_high)}
-                              </div>
-                            </div>
+  <div className="mt-4">
+    <FieldLabel>Estimated value</FieldLabel>
+    <div className="mt-2 text-sm font-medium">
+      {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+    </div>
+  </div>
 
-                            {bag.purchase_price !== null && (
-                              <div className="mt-4">
-                                <FieldLabel>Acquisition cost</FieldLabel>
-                                <div className="mt-2 text-sm font-medium">
-                                  {formatMoneyWithCurrency(
-                                    bag.purchase_price,
-                                    bag.purchase_price_currency
-                                  )}
-                                </div>
-                              </div>
-                            )}
+  <div className="mt-4 text-xs text-[#8B7E72]">
+    Added {formatDate(bag.created_at)}
+  </div>
 
-                            {(bag.color || bag.material || bag.size) && (
-                              <div className="mt-4">
-                                <FieldLabel>Details</FieldLabel>
-                                <div className="mt-2 text-sm text-[#6E645B]">
-                                  {[bag.color, bag.material, bag.size]
-                                    .filter(Boolean)
-                                    .join(" • ")}
-                                </div>
-                              </div>
-                            )}
+  <div className="mt-5 grid grid-cols-2 gap-3">
+    <motion.div whileTap={{ scale: 0.98 }}>
+      <Link
+        href={`/bag/${bag.id}`}
+        className="block rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-sm text-white transition hover:opacity-90"
+      >
+        View details
+      </Link>
+    </motion.div>
 
-                            <div className="mt-4 text-xs text-[#8B7E72]">
-                              Market context coming soon
-                            </div>
-
-                            <div className="mt-5 grid grid-cols-2 gap-3">
-                              <motion.div whileTap={{ scale: 0.98 }}>
-                                <Link
-                                  href={`/bag/${bag.id}`}
-                                  className="block rounded-2xl bg-[#2C2A29] px-4 py-3 text-center text-sm text-white transition hover:opacity-90"
-                                >
-                                  View details
-                                </Link>
-                              </motion.div>
-
-                              <motion.button
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => deleteBag(bag)}
-                                className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
-                              >
-                                Remove piece
-                              </motion.button>
-                            </div>
-                          </div>
+    <motion.button
+      whileTap={{ scale: 0.98 }}
+      onClick={() => deleteBag(bag)}
+      className="rounded-2xl border border-[#D8C7B8] bg-white px-4 py-3 text-sm transition hover:bg-[#F8F3EE]"
+    >
+      Remove piece
+    </motion.button>
+  </div>
+</div>
                         </motion.div>
                       );
                     })}
@@ -2195,7 +2166,7 @@ export default function AppPage() {
             <SectionHeader
               eyebrow="Wishlist / Watchlist"
               title="The pieces still on your radar."
-              description="Track future additions with the same care as the ones already in your archive."
+              description="Track future additions with the same care as the pieces you already own."
             />
 
             <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
