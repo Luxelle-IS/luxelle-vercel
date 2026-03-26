@@ -1918,42 +1918,67 @@ export default function AppPage() {
                 )}
               </AppShellCard>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.08fr_0.92fr]">
-                <div>
-                  <SectionHeader
-                    eyebrow="Archive intelligence"
-                    title="A quieter read of your collection."
-                    description="Essential archive signals, without turning the page into a dashboard wall."
-                  />
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <StatCard
-                      label="Market context"
-                      value="Coming soon"
-                      subtext="Comparable market data will appear here once available."
-                    />
-                    <StatCard
-                      label="Acquisition cost"
-                      value={formatCurrency(totalPurchasePrice)}
-                      subtext="Across all saved pieces"
-                    />
-                    <StatCard
-                      label="Archive status"
-                      value={
-                        collection.length < 3
-                          ? "Beginning"
-                          : collection.length < 8
-                          ? "Developing"
-                          : "Established"
-                      }
-                      subtext="A quiet read of collection maturity"
-                    />
-                  </div>
-                </div>
+<div className="rounded-[32px] border border-[#E7DDD3] bg-white/55 p-6 md:p-7">
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+    <div>
+      <div className="text-[11px] uppercase tracking-[0.32em] text-[#8B7E72]">
+        Archive intelligence
+      </div>
+      <h3 className="mt-3 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">
+        A quieter read of your collection.
+      </h3>
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-[#6E645B]">
+        Essential archive signals in a calmer, more compact view.
+      </p>
+    </div>
 
-                <div>
-                  <PortfolioChart collection={collection} />
-                </div>
-              </div>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
+          Market context
+        </div>
+        <div className="mt-3 text-xl font-semibold leading-tight">
+          Coming soon
+        </div>
+        <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+          Comparable market data will appear here once available.
+        </div>
+      </div>
+
+      <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
+          Acquisition cost
+        </div>
+        <div className="mt-3 text-xl font-semibold leading-tight">
+          {formatCurrency(totalPurchasePrice)}
+        </div>
+        <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+          Across all saved pieces.
+        </div>
+      </div>
+
+      <div className="rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
+          Archive status
+        </div>
+        <div className="mt-3 text-xl font-semibold leading-tight">
+          {collection.length < 3
+            ? "Beginning"
+            : collection.length < 8
+            ? "Developing"
+            : "Established"}
+        </div>
+        <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
+          A quiet read of collection maturity.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div className="mt-6">
+    <PortfolioChart collection={collection} />
+  </div>
+</div>
             </div>
           </motion.section>
         </div>
