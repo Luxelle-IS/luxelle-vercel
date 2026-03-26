@@ -256,11 +256,13 @@ async function saveChanges() {
     provenance_notes: provenanceNotes.trim() || null,
   };
 
-  const { error } = await supabase
+  console.log("Saving bag changes:", updatePayload);
+
+  const { data, error } = await supabase
     .from("bags")
     .update(updatePayload)
     .eq("id", bag.id)
-    .eq("user_id", user.id);
+    .select("*");
 
   if (error) {
     console.error("Save error:", error);
@@ -268,7 +270,16 @@ async function saveChanges() {
     return;
   }
 
-  await loadBag();
+  if (!data || data.length === 0) {
+    setMessage("No updated bag record was returned.");
+    console.error("Update succeeded but returned no rows.");
+    return;
+  }
+
+  const updatedBag = data[0] as SavedBag;
+
+  setBag(updatedBag);
+  hydrateEditFields(updatedBag);
   setEditing(false);
   setMessage("Archive details updated.");
 }
