@@ -319,8 +319,7 @@ export default function BagDetailPage() {
                 of a single piece.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
-                Review identification, valuation, provenance, and ownership
-                detail in one refined collector view.
+               Review acquisition, archive detail, provenance, and directional value in one refined collector view.
               </p>
               <div className="mt-5 text-sm text-[#7A6F65]">
                 {userEmail ? `Signed in as ${userEmail}` : "Not signed in"}
@@ -409,12 +408,12 @@ export default function BagDetailPage() {
                 <FieldLabel>Collector record</FieldLabel>
                 <div className="mt-4 space-y-4">
                   <DetailBlock label="Personal notes">
-                    {bag.notes || "No personal notes have been added yet."}
+                    {bag.notes || "No personal notes added yet."}
                   </DetailBlock>
 
                   <DetailBlock label="Provenance / receipt notes">
                     {bag.provenance_notes ||
-                      "No provenance notes have been added yet."}
+                      "No provenance notes added yet."}
                   </DetailBlock>
                 </div>
               </AppCard>
@@ -503,7 +502,7 @@ export default function BagDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    "No archive details have been added yet."
+                    "No archive details added yet."
                   )}
                 </div>
               </div>

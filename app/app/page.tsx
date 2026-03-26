@@ -1302,10 +1302,10 @@ export default function AppPage() {
     0
   );
 
-  const averageValue =
-    collection.length > 0
-      ? Math.round((totalLow + totalHigh) / 2 / collection.length)
-      : 0;
+ const averageAcquisitionCost =
+  collection.length > 0
+    ? Math.round(totalPurchasePrice / collection.length)
+    : 0;
 
   const collectionMid = Math.round((totalLow + totalHigh) / 2);
   const wishlistCount = wishlist.length;
@@ -1487,14 +1487,14 @@ export default function AppPage() {
               </div>
 
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-                  Average piece
-                </div>
-                <div className="mt-3 text-3xl font-semibold">
-                  {collection.length ? formatCurrency(averageValue) : "—"}
-                </div>
+<div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
+  Average cost
+</div>
+<div className="mt-3 text-3xl font-semibold">
+  {collection.length ? formatCurrency(averageAcquisitionCost) : "—"}
+</div>
 <div className="mt-2 text-sm text-[#6E645B]">
-  Average estimate
+  Average acquisition cost
 </div>
               </div>
             </div>
@@ -2110,6 +2110,18 @@ export default function AppPage() {
   </div>
 
   <div className="mt-4 h-px bg-[#E7DDD3]" />
+
+<div className="mt-4">
+  <FieldLabel>Acquisition cost</FieldLabel>
+  <div className="mt-2 text-sm font-medium">
+    {bag.purchase_price !== null
+      ? formatMoneyWithCurrency(
+          bag.purchase_price,
+          bag.purchase_price_currency
+        )
+      : "Cost not added"}
+  </div>
+</div>
 
 <div className="mt-4">
   <FieldLabel>Acquisition cost</FieldLabel>
