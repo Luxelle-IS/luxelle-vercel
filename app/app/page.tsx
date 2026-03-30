@@ -2042,7 +2042,7 @@ model: manualMode ? manualModel || result.model : result.model,
                 </motion.div>
               )}
 
-  {justSaved && saveMessage && (
+{justSaved && saveMessage && (
   <FirstSaveCelebration
     message={saveMessage}
     brand={manualMode ? manualBrand : result?.brand}
