@@ -9,22 +9,34 @@ const client = new OpenAI({
 const supabaseUrl =
   process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 
+const supabaseAnonKey =
+  process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error(
-    "Missing Supabase server environment variables."
-  );
+if (!supabaseUrl) {
+  throw new Error("Missing Supabase URL.");
 }
 
+if (!supabaseAnonKey) {
+  throw new Error("Missing Supabase anon key.");
+}
+
+if (!supabaseServiceRoleKey) {
+  throw new Error("Missing Supabase service role key.");
+}
+
+// Use anon client to verify incoming user token
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
+
+// Use service-role client only for server-side DB work
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const DAILY_IDENTIFY_LIMIT = 5;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // ~8MB base64 payload guard
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const OPENAI_TIMEOUT_MS = 25000;
 
 function estimateBase64Bytes(base64String: string) {
-  // rough estimate for base64 payload size
   const cleaned = base64String.split(",").pop() || "";
   return Math.ceil((cleaned.length * 3) / 4);
 }
@@ -70,12 +82,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verify token with anon client
     const {
       data: { user },
       error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
+      console.error("Identify auth error:", authError);
       return NextResponse.json(
         { error: "Your session could not be verified. Please sign in again." },
         { status: 401 }
@@ -97,6 +111,7 @@ export async function POST(req: Request) {
     }
 
     const imageBytes = estimateBase64Bytes(image);
+
     if (imageBytes > MAX_IMAGE_BYTES) {
       return NextResponse.json(
         { error: "Please upload an image smaller than 8MB." },
