@@ -6,30 +6,23 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const supabaseAnonKey =
-  process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
-  throw new Error("Missing Supabase URL.");
+  throw new Error("Missing SUPABASE_URL.");
 }
 
 if (!supabaseAnonKey) {
-  throw new Error("Missing Supabase anon key.");
+  throw new Error("Missing SUPABASE_ANON_KEY.");
 }
 
 if (!supabaseServiceRoleKey) {
-  throw new Error("Missing Supabase service role key.");
+  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY.");
 }
 
-// Use anon client to verify incoming user token
 const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
-
-// Use service-role client only for server-side DB work
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const DAILY_IDENTIFY_LIMIT = 5;
