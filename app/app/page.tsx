@@ -1630,7 +1630,7 @@ model: manualMode ? manualModel || result.model : result.model,
               {result && !loading && (
   <div className="mt-6 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
 
-    <FieldLabel>Suggested match</FieldLabel>
+    <FieldLabel>AI suggestion</FieldLabel>
 
     <div className="mt-4 flex items-center gap-3">
       <button
@@ -1805,12 +1805,26 @@ model: manualMode ? manualModel || result.model : result.model,
                     </div>
 
                     <div>
-                      <FieldLabel>Estimated value range</FieldLabel>
-                      <div className="mt-2 text-base font-medium">
-                        {formatCurrency(result.estimatedLow)} –{" "}
-                        {formatCurrency(result.estimatedHigh)}
-                      </div>
-                    </div>
+               <div
+  className={`rounded-[20px] border px-4 py-4 transition ${
+    manualMode
+      ? "border-[#E7DDD3] bg-white/60 opacity-70"
+      : "border-transparent bg-transparent opacity-100"
+  }`}
+>
+  <FieldLabel>{manualMode ? "AI estimate" : "Estimated value range"}</FieldLabel>
+
+  <div className="mt-2 text-base font-medium">
+    {formatCurrency(result.estimatedLow)} –{" "}
+    {formatCurrency(result.estimatedHigh)}
+  </div>
+
+  {manualMode && (
+    <div className="mt-2 text-xs text-[#8B7E72]">
+      Shown for reference only. This estimate may not reflect your edited brand or model.
+    </div>
+  )}
+</div>
                   </div>
 
                   <div className="mt-5 rounded-[22px] border border-[#E7DDD3] bg-white p-4">
