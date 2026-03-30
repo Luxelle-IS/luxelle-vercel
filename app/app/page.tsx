@@ -1017,13 +1017,26 @@ export default function AppPage() {
         const base64 = reader.result as string;
         setPreview(base64);
 
-        const res = await fetch("/api/identify", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ image: base64 }),
-        });
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+const accessToken = session?.access_token;
+
+if (!accessToken) {
+  setError("Please sign in before identifying a piece.");
+  setLoading(false);
+  return;
+}
+
+const res = await fetch("/api/identify", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+  },
+  body: JSON.stringify({ image: base64 }),
+});
 
         const text = await res.text();
 

@@ -1,33 +1,153 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createClient } from "@supabase/supabase-js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+const DAILY_IDENTIFY_LIMIT = 5;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // ~8MB base64 payload guard
+const OPENAI_TIMEOUT_MS = 25000;
+
+function estimateBase64Bytes(base64String: string) {
+  // rough estimate for base64 payload size
+  const cleaned = base64String.split(",").pop() || "";
+  return Math.ceil((cleaned.length * 3) / 4);
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Identification timed out. Please try again."));
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+function normalizeConfidence(value: unknown): "high" | "medium" | "low" {
+  if (value === "high" || value === "medium" || value === "low") return value;
+  return "low";
+}
+
+function normalizeInteger(value: unknown): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.round(num));
+}
+
 export async function POST(req: Request) {
   try {
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "").trim();
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Please sign in before identifying a piece." },
+        { status: 401 }
+      );
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Your session could not be verified. Please sign in again." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const image = body?.image;
 
-    if (!image) {
+    if (!image || typeof image !== "string") {
       return NextResponse.json({ error: "Missing image." }, { status: 400 });
     }
 
-    const response = await client.responses.create({
-      model: "gpt-4.1-mini",
-      input: [
+    if (!image.startsWith("data:image/")) {
+      return NextResponse.json(
+        { error: "Please upload a valid image file." },
+        { status: 400 }
+      );
+    }
+
+    const imageBytes = estimateBase64Bytes(image);
+    if (imageBytes > MAX_IMAGE_BYTES) {
+      return NextResponse.json(
+        { error: "Please upload an image smaller than 8MB." },
+        { status: 413 }
+      );
+    }
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { count, error: countError } = await supabaseAdmin
+      .from("identify_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", since);
+
+    if (countError) {
+      console.error("Identify count error:", countError);
+      return NextResponse.json(
+        { error: "Could not verify usage limits. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    if ((count || 0) >= DAILY_IDENTIFY_LIMIT) {
+      return NextResponse.json(
         {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: `
+          error: `You’ve reached today’s identification limit of ${DAILY_IDENTIFY_LIMIT} pieces. Please try again tomorrow.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    const { error: insertError } = await supabaseAdmin
+      .from("identify_requests")
+      .insert([{ user_id: user.id }]);
+
+    if (insertError) {
+      console.error("Identify usage insert error:", insertError);
+      return NextResponse.json(
+        { error: "Could not register this request. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    const response = await withTimeout(
+      client.responses.create({
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: `
 You are a luxury handbag identification assistant for a premium archive app called Luxelle.
 
 Your job:
 - Identify the most likely handbag brand and model from the image
-- Estimate a realistic resale value range in USD
+- Estimate a realistic directional resale value range in USD
 - Return a refined editorial-style description
 - Explain confidence clearly and briefly
 - Keep the tone premium, concise, and elegant
@@ -52,16 +172,16 @@ Return this exact JSON shape:
   "estimatedLow": number,
   "estimatedHigh": number
 }
-              `.trim(),
-            },
-          ],
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `
+                `.trim(),
+              },
+            ],
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: `
 Identify this luxury handbag from the image.
 
 Please provide:
@@ -77,17 +197,19 @@ Please provide:
 The description should sound premium and concise, like a luxury archive note.
 The reasoning should briefly mention visible cues such as silhouette, hardware, quilting, leather texture, handle shape, flap structure, logo placement, or color/material cues.
 Return JSON only.
-              `.trim(),
-            },
-            {
-              type: "input_image",
-              image_url: image,
-              detail: "high",
-            },
-          ],
-        },
-      ],
-    });
+                `.trim(),
+              },
+              {
+                type: "input_image",
+                image_url: image,
+                detail: "high",
+              },
+            ],
+          },
+        ],
+      }),
+      OPENAI_TIMEOUT_MS
+    );
 
     const rawText =
       response.output_text ||
@@ -99,7 +221,7 @@ Return JSON only.
 
     if (!rawText) {
       return NextResponse.json(
-        { error: "No response text returned from model." },
+        { error: "No response text returned from the model." },
         { status: 500 }
       );
     }
@@ -108,19 +230,22 @@ Return JSON only.
     try {
       parsed = JSON.parse(rawText);
     } catch {
+      console.error("Invalid JSON from model:", rawText);
       return NextResponse.json(
-        {
-          error: "Model returned invalid JSON.",
-          raw: rawText,
-        },
+        { error: "The model returned an unreadable response. Please try again." },
         { status: 500 }
       );
     }
 
+    const estimatedLow = normalizeInteger(parsed.estimatedLow);
+    const estimatedHigh = normalizeInteger(parsed.estimatedHigh);
+    const low = Math.min(estimatedLow, estimatedHigh);
+    const high = Math.max(estimatedLow, estimatedHigh);
+
     return NextResponse.json({
       brand: parsed.brand || "Unknown",
       model: parsed.model || "Unspecified model",
-      confidence: parsed.confidence || "low",
+      confidence: normalizeConfidence(parsed.confidence),
       confidenceReason:
         parsed.confidenceReason ||
         "The visual cues were limited, so this result should be treated as directional.",
@@ -130,13 +255,17 @@ Return JSON only.
       reasoning:
         parsed.reasoning ||
         "The identification is based on the overall silhouette and visible exterior details.",
-      estimatedLow: Number(parsed.estimatedLow) || 0,
-      estimatedHigh: Number(parsed.estimatedHigh) || 0,
+      estimatedLow: low,
+      estimatedHigh: high,
     });
   } catch (error: any) {
+    console.error("Identify route error:", error);
+
     return NextResponse.json(
       {
-        error: error?.message || "Something went wrong.",
+        error:
+          error?.message ||
+          "We couldn’t review this piece right now. Please try again in a moment.",
       },
       { status: 500 }
     );
