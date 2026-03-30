@@ -1804,8 +1804,7 @@ model: manualMode ? manualModel || result.model : result.model,
                       </div>
                     </div>
 
-                    <div>
-               <div
+                    <div
   className={`rounded-[20px] border px-4 py-4 transition ${
     manualMode
       ? "border-[#E7DDD3] bg-white/60 opacity-70"
