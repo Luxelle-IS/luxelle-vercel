@@ -68,7 +68,7 @@ export default function HomePage() {
                   href="/app"
                   className="rounded-2xl border border-[#E7DDD3] bg-[#FCF8F4] px-5 py-3 text-sm transition hover:bg-white"
                 >
-                  Enter app
+                  Open archive
                 </Link>
               </div>
             </div>
@@ -85,26 +85,24 @@ export default function HomePage() {
                 Private luxury archive
               </div>
 
-              <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.035em] md:text-7xl">
-                A private archive
-                <br />
-                for your luxury
-                <br />
-                pieces.
-              </h1>
+         <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.035em] md:text-7xl">
+  A private record
+  <br />
+  of your luxury
+  <br />
+  pieces.
+</h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-relaxed opacity-75 md:text-lg">
-                Identify, organize, and track your collection with acquisition,
-                provenance, archive detail, and directional value in one place.
-              </p>
-
+       <p className="mt-6 max-w-2xl text-base leading-relaxed opacity-75 md:text-lg">
+  Acquisition, provenance, and ownership — kept in one private place.
+</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
                   <Link
                     href="/app"
                     className="inline-flex rounded-2xl bg-[#2C2A29] px-6 py-3 text-sm text-white transition hover:opacity-90"
                   >
-                    Start your archive
+                    Add your first piece
                   </Link>
                 </motion.div>
 
@@ -118,16 +116,7 @@ export default function HomePage() {
                 </motion.div>
               </div>
 
-              <div className="mt-10 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
-                {highlights.map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-[22px] border border-[#E7DDD3] bg-white/75 px-4 py-4 text-sm shadow-sm"
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
+
             </motion.div>
 
             <motion.div
@@ -148,11 +137,11 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <img
-                    src="/luxelle-preview.jpg"
-                    alt="Luxelle product preview"
-                    className="w-full object-cover"
-                  />
+           <img
+  src="/luxelle-preview.jpg"
+  alt="Luxelle product preview"
+  className="w-full object-contain bg-[#F7F1EA]"
+/>
                 </div>
 
                 <div className="rounded-[28px] border border-black/5 bg-[#FCF8F4] p-5 shadow-sm">
