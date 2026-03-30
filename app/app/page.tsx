@@ -678,6 +678,25 @@ function FirstSaveCelebration({
 export default function AppPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
+  // ✨ Manual override (NEW)
+const [manualMode, setManualMode] = useState(false);
+const [manualBrand, setManualBrand] = useState("");
+const [manualModel, setManualModel] = useState("");
+const [showManualBrandSuggestions, setShowManualBrandSuggestions] = useState(false);
+const [showManualModelSuggestions, setShowManualModelSuggestions] = useState(false);
+
+const manualBrandWrapRef = useRef<HTMLDivElement | null>(null);
+const manualModelWrapRef = useRef<HTMLDivElement | null>(null);
+
+const manualBrandSuggestions = useMemo(
+  () => getBrandSuggestions(manualBrand),
+  [manualBrand]
+);
+
+const manualModelSuggestions = useMemo(
+  () => getModelSuggestions(manualBrand, manualModel),
+  [manualBrand, manualModel]
+);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -803,6 +822,19 @@ export default function AppPage() {
       ) {
         setShowEditWishModelSuggestions(false);
       }
+      if (
+  manualBrandWrapRef.current &&
+  !manualBrandWrapRef.current.contains(target)
+) {
+  setShowManualBrandSuggestions(false);
+}
+
+if (
+  manualModelWrapRef.current &&
+  !manualModelWrapRef.current.contains(target)
+) {
+  setShowManualModelSuggestions(false);
+}
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -1112,8 +1144,8 @@ export default function AppPage() {
 
       const { error } = await supabase.from("bags").insert([
         {
-          brand: result.brand,
-          model: result.model,
+          brand: manualMode ? manualBrand || result.brand : result.brand,
+model: manualMode ? manualModel || result.model : result.model,
           confidence: result.confidence,
           estimated_low: result.estimatedLow,
           estimated_high: result.estimatedHigh,
@@ -1655,11 +1687,75 @@ export default function AppPage() {
                   className="mt-6 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6"
                 >
                   <FieldLabel>Suggested match</FieldLabel>
+                  <div className="mt-4 flex items-center gap-3">
+  <button
+    type="button"
+    onClick={() => setManualMode(!manualMode)}
+    className="text-xs underline text-[#6E645B]"
+  >
+    {manualMode ? "Use AI suggestion instead" : "Edit manually"}
+  </button>
+</div>
+{manualMode ? (
+  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div ref={manualBrandWrapRef} className="relative">
+      <FieldLabel>Brand</FieldLabel>
+      <input
+        type="text"
+        value={manualBrand}
+        onFocus={() => setShowManualBrandSuggestions(true)}
+        onChange={(e) => {
+          setManualBrand(e.target.value);
+          setShowManualBrandSuggestions(true);
+        }}
+        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+      />
 
-                  <div className="mt-3 text-2xl font-semibold">
-                    {result.brand}
-                  </div>
-                  <div className="text-lg text-[#6E645B]">{result.model}</div>
+      {showManualBrandSuggestions && (
+        <SuggestionDropdown
+          items={manualBrandSuggestions}
+          onSelect={(value) => {
+            setManualBrand(value);
+            setShowManualBrandSuggestions(false);
+            setManualModel("");
+            setShowManualModelSuggestions(true);
+          }}
+        />
+      )}
+    </div>
+
+    <div ref={manualModelWrapRef} className="relative">
+      <FieldLabel>Model</FieldLabel>
+      <input
+        type="text"
+        value={manualModel}
+        onFocus={() => setShowManualModelSuggestions(true)}
+        onChange={(e) => {
+          setManualModel(e.target.value);
+          setShowManualModelSuggestions(true);
+        }}
+        className="mt-2 w-full rounded-2xl border border-[#E7DDD3] bg-white px-4 py-3 text-sm outline-none"
+      />
+
+      {showManualModelSuggestions && (
+        <SuggestionDropdown
+          items={manualModelSuggestions}
+          onSelect={(value) => {
+            setManualModel(value);
+            setShowManualModelSuggestions(false);
+          }}
+        />
+      )}
+    </div>
+  </div>
+) : (
+  <>
+    <div className="mt-3 text-2xl font-semibold">
+      {result.brand}
+    </div>
+    <div className="text-lg text-[#6E645B]">{result.model}</div>
+  </>
+)}
 
                   <div className="mt-4 text-sm leading-relaxed text-[#6E645B]">
                     {result.description}
