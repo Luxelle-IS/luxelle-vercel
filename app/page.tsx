@@ -8,14 +8,6 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
-const heroPreview = {
-  brand: "Chanel",
-  model: "Classic Flap",
-  note: "Private archive, valuation, provenance",
-  image:
-    "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1200&q=80",
-};
-
 const steps = [
   {
     title: "Upload a piece",
@@ -23,21 +15,21 @@ const steps = [
   },
   {
     title: "Save the record",
-    text: "Keep value, provenance, condition, and acquisition details in one place.",
+    text: "Keep acquisition, provenance, condition, and archive details in one place.",
   },
   {
     title: "Build the archive",
-    text: "Track your collection and wishlist with more clarity over time.",
+    text: "Track what you own and what you still want with more clarity over time.",
   },
 ];
 
 const highlights = [
   "Private archive for luxury collections",
-  "Identification, valuation, and wishlist tracking",
+  "Acquisition, provenance, and wishlist tracking",
 ];
 
 const reasons = [
-  "A calmer, more elegant alternative to scattered notes and screenshots",
+  "A calmer alternative to scattered notes, screenshots, and resale tabs",
   "One private place for ownership, provenance, acquisition, and wishlist intent",
   "A collector experience designed to feel worthy of luxury objects",
 ];
@@ -82,7 +74,7 @@ export default function HomePage() {
             </div>
           </motion.header>
 
-          <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <motion.div
               variants={fadeUp}
               initial="initial"
@@ -94,16 +86,16 @@ export default function HomePage() {
               </div>
 
               <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.035em] md:text-7xl">
-                Build the private
+                A private archive
                 <br />
-                archive your bags
+                for your luxury
                 <br />
-                deserve.
+                pieces.
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-relaxed opacity-75 md:text-lg">
-                Identify, archive, and understand the luxury pieces you own —
-                and the ones still on your radar.
+                Identify, organize, and track your collection with acquisition,
+                provenance, archive detail, and directional value in one place.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -147,34 +139,32 @@ export default function HomePage() {
             >
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-[36px] border border-black/5 bg-white shadow-sm">
-                  <img
-                    src={heroPreview.image}
-                    alt={heroPreview.brand}
-                    className="h-[430px] w-full object-cover"
-                  />
-                  <div className="p-6">
-                    <div className="text-2xl font-semibold">
-                      {heroPreview.brand}
+                  <div className="border-b border-[#EEE4D9] px-6 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.3em] text-[#8B7E72]">
+                      Real Luxelle view
                     </div>
-                    <div className="mt-1 text-base opacity-70">
-                      {heroPreview.model}
-                    </div>
-                    <div className="mt-4 text-[11px] uppercase tracking-[0.24em] opacity-55">
-                      {heroPreview.note}
+                    <div className="mt-2 text-lg font-semibold">
+                      Collector record
                     </div>
                   </div>
+
+                  <img
+                    src="/luxelle-preview.jpg"
+                    alt="Luxelle product preview"
+                    className="w-full object-cover"
+                  />
                 </div>
 
                 <div className="rounded-[28px] border border-black/5 bg-[#FCF8F4] p-5 shadow-sm">
                   <div className="text-[11px] uppercase tracking-[0.24em] opacity-55">
-                    Collection overview
-                  </div>
-                  <div className="mt-3 text-2xl font-semibold">
                     Built for private collectors
                   </div>
+                  <div className="mt-3 text-2xl font-semibold">
+                    A quieter way to keep the record.
+                  </div>
                   <div className="mt-2 text-sm leading-relaxed opacity-70">
-                    A quieter, more elegant way to keep track of ownership,
-                    value, provenance, and future targets.
+                    Luxelle brings ownership, acquisition, provenance, and
+                    wishlist intent into one considered luxury archive.
                   </div>
                 </div>
               </div>
@@ -278,7 +268,7 @@ export default function HomePage() {
             Start now
           </div>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] md:text-5xl">
-            Start your archive before
+            Begin your archive before
             <br />
             your collection gets bigger.
           </h2>
