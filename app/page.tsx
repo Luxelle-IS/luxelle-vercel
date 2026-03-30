@@ -90,11 +90,11 @@ export default function HomePage() {
   <br />
   of your luxury
   <br />
-  pieces.
+  assets.
 </h1>
 
        <p className="mt-6 max-w-2xl text-base leading-relaxed opacity-75 md:text-lg">
-  Acquisition, provenance, and ownership — kept in one private place.
+  Track acquisition, provenance, and value across your collection — in one private place.
 </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
@@ -149,11 +149,10 @@ export default function HomePage() {
                     Built for private collectors
                   </div>
                   <div className="mt-3 text-2xl font-semibold">
-                    A quieter way to keep the record.
+                    A quieter way to track what you own.
                   </div>
                   <div className="mt-2 text-sm leading-relaxed opacity-70">
-                    Luxelle brings ownership, acquisition, provenance, and
-                    wishlist intent into one considered luxury archive.
+                    Luxelle brings acquisition, provenance, and value into one considered private collection.
                   </div>
                 </div>
               </div>

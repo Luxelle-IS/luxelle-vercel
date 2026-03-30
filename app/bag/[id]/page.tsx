@@ -434,7 +434,7 @@ async function saveChanges() {
               )}
 
               <AppCard className="p-8">
-                <FieldLabel>Collector record</FieldLabel>
+                <FieldLabel>Ownership record</FieldLabel>
                 <div className="mt-4 space-y-4">
                   <DetailBlock label="Personal notes">
                     {bag.notes || "No personal notes added yet."}
@@ -473,24 +473,23 @@ async function saveChanges() {
               </div>
 
               <div className="mt-8">
-                <FieldLabel>Acquisition cost</FieldLabel>
+                <FieldLabel>Recorded value</FieldLabel>
                 <div className="mt-3 text-3xl font-semibold leading-tight">
                   {acquisitionValue}
                 </div>
                 <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
-                  Your recorded purchase amount for this piece.
+                  Your recorded value for this piece within your collection.
                 </div>
               </div>
 
               <div className="mt-8 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <FieldLabel>Estimated value</FieldLabel>
+                <FieldLabel>Market estimate</FieldLabel>
                 <div className="mt-3 text-lg font-semibold">
                   {formatCurrency(bag.estimated_low)} –{" "}
                   {formatCurrency(bag.estimated_high)}
                 </div>
                 <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
-                  Directional estimate only. Market-validated resale pricing
-                  coming later.
+                  Directional estimate. Market-based pricing and trend signals coming soon.
                 </div>
               </div>
 
@@ -524,7 +523,7 @@ async function saveChanges() {
               </div>
 
               <div className="mt-4 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
-                <FieldLabel>Archive details</FieldLabel>
+                <FieldLabel>Asset details</FieldLabel>
                 <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
                   {archiveDetails.length > 0 ? (
                     <div className="space-y-2">
@@ -533,7 +532,7 @@ async function saveChanges() {
                       ))}
                     </div>
                   ) : (
-                    "No archive details added yet."
+                    "No asset details added yet."
                   )}
                 </div>
               </div>
@@ -567,7 +566,7 @@ async function saveChanges() {
                     <FieldLabel>Edit details</FieldLabel>
 
                     <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <EditField label="Acquisition cost">
+                      <EditField label="Recorded value">
                         <input
                           type="number"
                           placeholder="Optional"

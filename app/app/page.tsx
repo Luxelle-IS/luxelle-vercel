@@ -1412,11 +1412,10 @@ export default function AppPage() {
               <h1 className="mt-4 text-4xl font-semibold leading-[1.02] tracking-[-0.04em] md:text-6xl">
                 Your collection,
                 <br />
-                kept with more elegance.
+                understood more clearly.
               </h1>
 <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[#6E645B] md:text-base">
-  Archive what you own, track what you want, and keep your collection
-  in a more elegant private record.
+  Track what you own, understand its value, and keep your collection in one private record.
 </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
@@ -1452,13 +1451,13 @@ export default function AppPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
 <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-  Collection cost
+  Collection value
 </div>
 <div className="mt-3 text-3xl font-semibold">
   {collection.length ? formatCurrency(totalPurchasePrice) : "—"}
 </div>
 <div className="mt-2 text-sm text-[#6E645B]">
-  Total recorded acquisition cost
+  Total recorded value of your collection
 </div>
               </div>
 
@@ -1488,13 +1487,13 @@ export default function AppPage() {
 
               <div className="rounded-[28px] border border-[#E7DDD3] bg-white/70 p-5">
 <div className="text-[11px] uppercase tracking-[0.22em] text-[#8B7E72]">
-  Average cost
+  Average value
 </div>
 <div className="mt-3 text-3xl font-semibold">
   {collection.length ? formatCurrency(averageAcquisitionCost) : "—"}
 </div>
 <div className="mt-2 text-sm text-[#6E645B]">
-  Average acquisition cost
+  Average recorded value
 </div>
               </div>
             </div>
