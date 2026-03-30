@@ -135,10 +135,10 @@ export async function POST(req: Request) {
 
     const colors = {
       page: rgb(0.965, 0.945, 0.92),
-      paper: rgb(0.992, 0.987, 0.98),
-      panel: rgb(0.978, 0.968, 0.955),
-      softPanel: rgb(0.986, 0.978, 0.968),
-      line: rgb(0.88, 0.84, 0.79),
+      paper: rgb(0.991, 0.987, 0.981),
+      panel: rgb(0.979, 0.971, 0.962),
+      softPanel: rgb(0.985, 0.979, 0.971),
+      line: rgb(0.875, 0.84, 0.8),
       ink: rgb(0.17, 0.16, 0.16),
       soft: rgb(0.45, 0.42, 0.39),
       faint: rgb(0.62, 0.58, 0.54),
@@ -146,8 +146,8 @@ export async function POST(req: Request) {
       white: rgb(1, 1, 1),
     };
 
-    const outerMargin = 34;
-    const x0 = 48;
+    const outerMargin = 30;
+    const x0 = 50;
     const contentW = width - x0 * 2;
 
     page.drawRectangle({
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
       height: height - outerMargin * 2,
       color: colors.paper,
       borderColor: colors.line,
-      borderWidth: 1,
+      borderWidth: 0.8,
     });
 
     const totalPieces = collection.length;
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
     });
 
     page.drawText(`Generated ${generatedAt}`, {
-      x: width - 165,
+      x: width - 170,
       y: height - 58,
       size: 10,
       font: fontRegular,
@@ -250,17 +250,17 @@ export async function POST(req: Request) {
     });
 
     page.drawLine({
-      start: { x: x0, y: height - 136 },
-      end: { x: width - x0, y: height - 136 },
-      thickness: 1,
+      start: { x: x0, y: height - 140 },
+      end: { x: width - x0, y: height - 140 },
+      thickness: 0.8,
       color: colors.line,
     });
 
-    // Stats strip
-    const statsY = height - 208;
-    const statGap = 12;
+    // Top stats
+    const statsY = height - 210;
+    const statGap = 14;
     const statW = (contentW - statGap * 2) / 3;
-    const statH = 64;
+    const statH = 66;
 
     const stats = [
       { label: "Pieces Archived", value: String(totalPieces) },
@@ -281,12 +281,12 @@ export async function POST(req: Request) {
         height: statH,
         color: colors.softPanel,
         borderColor: colors.line,
-        borderWidth: 1,
+        borderWidth: 0.8,
       });
 
       page.drawText(stat.label, {
         x: x + 14,
-        y: statsY + 43,
+        y: statsY + 45,
         size: 10,
         font: fontRegular,
         color: colors.soft,
@@ -301,15 +301,15 @@ export async function POST(req: Request) {
       });
     });
 
-    // Main editorial section
-    const heroY = 220;
-    const heroH = 150;
-    const leftW = 260;
-    const gap = 22;
+    // Middle section
+    const heroY = 214;
+    const heroH = 142;
+    const leftW = 264;
+    const gap = 24;
     const rightX = x0 + leftW + gap;
     const rightW = contentW - leftW - gap;
 
-    // Signature piece panel
+    // Signature piece
     page.drawRectangle({
       x: x0,
       y: heroY,
@@ -317,12 +317,12 @@ export async function POST(req: Request) {
       height: heroH,
       color: colors.panel,
       borderColor: colors.line,
-      borderWidth: 1,
+      borderWidth: 0.8,
     });
 
     page.drawText("Signature Piece", {
       x: x0 + 16,
-      y: heroY + heroH - 22,
+      y: heroY + heroH - 20,
       size: 10,
       font: fontRegular,
       color: colors.soft,
@@ -366,12 +366,12 @@ export async function POST(req: Request) {
         });
       }
 
-      const tx = imageBoxX + imageBoxW + 16;
+      const tx = imageBoxX + imageBoxW + 18;
       const valueWidth = leftW - (tx - x0) - 18;
 
       page.drawText(truncate(signaturePiece.brand || "Unknown", 16), {
         x: tx,
-        y: heroY + 88,
+        y: heroY + 86,
         size: 18,
         font: fontBold,
         color: colors.ink,
@@ -379,7 +379,7 @@ export async function POST(req: Request) {
 
       page.drawText(truncate(signaturePiece.model || "Unknown", 22), {
         x: tx,
-        y: heroY + 66,
+        y: heroY + 64,
         size: 11,
         font: fontRegular,
         color: colors.soft,
@@ -424,10 +424,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // Right editorial summary block
+    // Editorial summary right side
     page.drawText("Brand Profile", {
       x: rightX,
-      y: heroY + heroH - 18,
+      y: heroY + heroH - 16,
       size: 10,
       font: fontRegular,
       color: colors.soft,
@@ -437,7 +437,7 @@ export async function POST(req: Request) {
       page,
       text: topBrands.length ? topBrands.join(" • ") : "No brand data yet",
       x: rightX,
-      y: heroY + heroH - 42,
+      y: heroY + heroH - 40,
       maxWidth: rightW - 8,
       font: fontBold,
       size: 13,
@@ -499,26 +499,27 @@ export async function POST(req: Request) {
       lineHeight: 11,
     });
 
-    // Selected pieces divider
+    // Divider
     page.drawLine({
-      start: { x: x0, y: 198 },
-      end: { x: width - x0, y: 198 },
-      thickness: 1,
+      start: { x: x0, y: 194 },
+      end: { x: width - x0, y: 194 },
+      thickness: 0.8,
       color: colors.line,
     });
 
     page.drawText("Selected Pieces", {
       x: x0,
-      y: 178,
+      y: 174,
       size: 12,
       font: fontBold,
       color: colors.ink,
     });
 
+    // Lower cards
     const cardY = 48;
-    const cardGap = 12;
+    const cardGap = 14;
     const cardW = (contentW - cardGap * 2) / 3;
-    const cardH = 116;
+    const cardH = 118;
 
     for (let i = 0; i < 3; i++) {
       const item = selectedItems[i];
@@ -531,13 +532,13 @@ export async function POST(req: Request) {
         height: cardH,
         color: colors.softPanel,
         borderColor: colors.line,
-        borderWidth: 1,
+        borderWidth: 0.8,
       });
 
       if (!item) continue;
 
       const imageBoxX = cardX + 14;
-      const imageBoxY = cardY + 16;
+      const imageBoxY = cardY + 17;
       const imageBoxW = 72;
       const imageBoxH = 84;
 
@@ -578,7 +579,7 @@ export async function POST(req: Request) {
 
       page.drawText(truncate(item.brand || "Unknown", 18), {
         x: tx,
-        y: cardY + 78,
+        y: cardY + 79,
         size: 13,
         font: fontBold,
         color: colors.ink,
@@ -623,8 +624,8 @@ export async function POST(req: Request) {
       });
     }
 
-    page.drawText("Generated by Luxelle", {
-      x: width - 128,
+    page.drawText("Prepared by Luxelle", {
+      x: width - 118,
       y: 20,
       size: 9,
       font: fontRegular,
