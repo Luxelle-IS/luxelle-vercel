@@ -1088,6 +1088,13 @@ if (
       const data = await res.json();
       setResult(data);
 
+// 👇 NEW: auto-switch if low confidence
+if (data.confidence === "low") {
+  setManualMode(true);
+  setManualBrand(data.brand || "");
+  setManualModel(data.model || "");
+}
+
     } catch (err: any) {
       if (err.name === "AbortError") {
         setError("This is taking longer than expected. Please try again.");
@@ -1802,6 +1809,11 @@ model: manualMode ? manualModel || result.model : result.model,
                       <div className="mt-2 text-sm leading-relaxed text-[#6E645B]">
                         {result.confidenceReason}
                       </div>
+                      {result.confidence === "low" && (
+  <div className="mt-4 rounded-[18px] border border-[#E7DDD3] bg-white px-4 py-3 text-sm text-[#6E645B]">
+    This match has low confidence. You may want to review or edit the details before saving.
+  </div>
+)}
                     </div>
 
                     <div
