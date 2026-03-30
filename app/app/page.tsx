@@ -638,43 +638,95 @@ function EmptyWishlistState({
 
 function FirstSaveCelebration({
   message,
+  brand,
+  model,
+  recordedValue,
+  previewImage,
   onUploadAnother,
   onGoWishlist,
 }: {
   message: string;
+  brand?: string;
+  model?: string;
+  recordedValue?: string | null;
+  previewImage?: string | null;
   onUploadAnother: () => void;
   onGoWishlist: () => void;
 }) {
   return (
-    <div className="mt-6 rounded-[28px] border border-[#D8C7B8] bg-[linear-gradient(180deg,#FFFDFC_0%,#F6EEE7_100%)] p-6 shadow-sm">
-      <div className="text-[11px] uppercase tracking-[0.28em] text-[#8B7E72]">
-        Archive updated
-      </div>
-      <div className="mt-3 text-2xl font-semibold tracking-[-0.02em]">
-        Your piece is now part of Luxelle.
-      </div>
-      <div className="mt-3 text-sm leading-relaxed text-[#6E645B]">
-        {message}
-      </div>
+    <div className="mt-6 overflow-hidden rounded-[30px] border border-[#D8C7B8] bg-[linear-gradient(180deg,#FFFDFC_0%,#F6EEE7_100%)] shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="p-6 md:p-7">
+          <div className="text-[11px] uppercase tracking-[0.28em] text-[#8B7E72]">
+            Archive updated
+          </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          onClick={onUploadAnother}
-          className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
-        >
-          Add another piece
-        </button>
-        <button
-          onClick={onGoWishlist}
-          className="rounded-2xl border border-[#D8C7B8] bg-white px-5 py-3 text-sm transition hover:bg-[#F8F3EE]"
-        >
-          Build your wishlist
-        </button>
+          <div className="mt-3 text-2xl font-semibold tracking-[-0.02em]">
+            Now recorded in Luxelle.
+          </div>
+
+          {(brand || model) && (
+            <div className="mt-4">
+              <div className="text-lg font-semibold">
+                {brand || "Saved piece"}
+              </div>
+              {model && (
+                <div className="text-sm text-[#6E645B]">
+                  {model}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-4 text-sm leading-relaxed text-[#6E645B]">
+            {message}
+          </div>
+
+          {recordedValue && (
+            <div className="mt-5 inline-flex rounded-full border border-[#E2D5C8] bg-white/80 px-4 py-2 text-sm text-[#2C2A29]">
+              Recorded value: {recordedValue}
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              onClick={onUploadAnother}
+              className="rounded-2xl bg-[#2C2A29] px-5 py-3 text-sm text-white transition hover:opacity-90"
+            >
+              Add another piece
+            </button>
+
+            <button
+              onClick={onGoWishlist}
+              className="rounded-2xl border border-[#D8C7B8] bg-white px-5 py-3 text-sm transition hover:bg-[#F8F3EE]"
+            >
+              Build your wishlist
+            </button>
+          </div>
+        </div>
+
+        <div className="flex min-h-[220px] items-center justify-center border-t border-[#E9DED3] bg-[linear-gradient(180deg,#F8F2EB_0%,#EFE4D7_100%)] p-6 md:border-l md:border-t-0">
+          {previewImage ? (
+            <div className="w-full max-w-[240px] overflow-hidden rounded-[24px] border border-white/60 bg-white/70 shadow-sm">
+              <img
+                src={previewImage}
+                alt={brand && model ? `${brand} ${model}` : "Saved piece"}
+                className="h-[220px] w-full object-contain p-4"
+              />
+            </div>
+          ) : (
+            <div className="rounded-[24px] border border-white/60 bg-white/70 px-6 py-8 text-center shadow-sm">
+              <div className="text-lg font-semibold">Saved beautifully</div>
+              <div className="mt-2 text-sm text-[#6E645B]">
+                Your archive has a new recorded piece.
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-
 export default function AppPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [result, setResult] = useState<IdentifyResult | null>(null);
@@ -1990,18 +2042,29 @@ model: manualMode ? manualModel || result.model : result.model,
                 </motion.div>
               )}
 
-              {justSaved && saveMessage && (
-                <FirstSaveCelebration
-                  message={saveMessage}
-                  onUploadAnother={() => {
-                    clearCurrentBagState();
-                    setSaveMessage("");
-                    setJustSaved(false);
-                    scrollToUploadPanel();
-                  }}
-                  onGoWishlist={scrollToWishlist}
-                />
-              )}
+  {justSaved && saveMessage && (
+  <FirstSaveCelebration
+    message={saveMessage}
+    brand={manualMode ? manualBrand : result?.brand}
+    model={manualMode ? manualModel : result?.model}
+    recordedValue={
+      purchasePrice
+        ? formatMoneyWithCurrency(
+            Number(purchasePrice),
+            purchasePriceCurrency
+          )
+        : null
+    }
+    previewImage={preview || null}
+    onUploadAnother={() => {
+      clearCurrentBagState();
+      setSaveMessage("");
+      setJustSaved(false);
+      scrollToUploadPanel();
+    }}
+    onGoWishlist={scrollToWishlist}
+  />
+)}
             </AppShellCard>
           </motion.section>
 
