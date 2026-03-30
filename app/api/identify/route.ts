@@ -1,42 +1,11 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { createClient } from "@supabase/supabase-js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const supabaseAnonKey =
-  process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl) {
-  throw new Error("Missing SUPABASE_URL.");
-}
-
-if (!supabaseAnonKey) {
-  throw new Error("Missing SUPABASE_ANON_KEY.");
-}
-
-if (!supabaseServiceRoleKey) {
-  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY.");
-}
-
-const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-const DAILY_IDENTIFY_LIMIT = 5;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const OPENAI_TIMEOUT_MS = 25000;
-
-function estimateBase64Bytes(base64String: string) {
-  const cleaned = base64String.split(",").pop() || "";
-  return Math.ceil((cleaned.length * 3) / 4);
-}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -69,30 +38,6 @@ function normalizeInteger(value: unknown): number {
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "").trim();
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Please sign in before identifying a piece." },
-        { status: 401 }
-      );
-    }
-
-    // Verify token with anon client
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAuth.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error("Identify auth error:", authError);
-      return NextResponse.json(
-        { error: "Your session could not be verified. Please sign in again." },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
     const image = body?.image;
 
@@ -104,52 +49,6 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Please upload a valid image file." },
         { status: 400 }
-      );
-    }
-
-    const imageBytes = estimateBase64Bytes(image);
-
-    if (imageBytes > MAX_IMAGE_BYTES) {
-      return NextResponse.json(
-        { error: "Please upload an image smaller than 8MB." },
-        { status: 413 }
-      );
-    }
-
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-    const { count, error: countError } = await supabaseAdmin
-      .from("identify_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", since);
-
-    if (countError) {
-      console.error("Identify count error:", countError);
-      return NextResponse.json(
-        { error: "Could not verify usage limits. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    if ((count || 0) >= DAILY_IDENTIFY_LIMIT) {
-      return NextResponse.json(
-        {
-          error: `You’ve reached today’s identification limit of ${DAILY_IDENTIFY_LIMIT} pieces. Please try again tomorrow.`,
-        },
-        { status: 429 }
-      );
-    }
-
-    const { error: insertError } = await supabaseAdmin
-      .from("identify_requests")
-      .insert([{ user_id: user.id }]);
-
-    if (insertError) {
-      console.error("Identify usage insert error:", insertError);
-      return NextResponse.json(
-        { error: "Could not register this request. Please try again." },
-        { status: 500 }
       );
     }
 
