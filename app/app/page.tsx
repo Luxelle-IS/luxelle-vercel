@@ -1627,6 +1627,31 @@ model: manualMode ? manualModel || result.model : result.model,
                   </div>
                 </div>
               )}
+              {result && !loading && (
+  <div className="mt-6 rounded-[26px] border border-[#E7DDD3] bg-[#FCF8F4] p-6">
+
+    <FieldLabel>Suggested match</FieldLabel>
+
+    <div className="mt-4 flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => setManualMode(!manualMode)}
+        className="text-xs underline text-[#6E645B]"
+      >
+        {manualMode ? "Use AI suggestion instead" : "Edit manually"}
+      </button>
+    </div>
+
+    {manualMode && (
+      <div className="mt-3 text-xs text-[#8B7E72]">
+        If you manually change the brand or model, the AI estimate may no longer match the final saved record.
+      </div>
+    )}
+
+    {/* Your existing result UI continues here */}
+
+  </div>
+)}
 
               {archiveSourceMessage && (
                 <div className="mt-6 rounded-[24px] border border-[#D8C7B8] bg-[#FCF8F4] p-4 text-sm text-[#6E645B]">
@@ -1696,6 +1721,11 @@ model: manualMode ? manualModel || result.model : result.model,
     {manualMode ? "Use AI suggestion instead" : "Edit manually"}
   </button>
 </div>
+{manualMode && (
+  <div className="mt-3 text-xs text-[#8B7E72]">
+    If you manually change the brand or model, the AI estimate may no longer match the final saved record.
+  </div>
+)}
 {manualMode ? (
   <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
     <div ref={manualBrandWrapRef} className="relative">
@@ -1977,18 +2007,26 @@ model: manualMode ? manualModel || result.model : result.model,
                         </div>
 
                         <div className="mt-8">
-                          <FieldLabel>Estimated value</FieldLabel>
-                          <div className="mt-2 text-2xl font-semibold">
-                            {formatCurrency(mostValuableBag.estimated_low)} –{" "}
-                            {formatCurrency(mostValuableBag.estimated_high)}
-                          </div>
+                     <FieldLabel>Recorded value</FieldLabel>
+<div className="mt-2 text-2xl font-semibold">
+  {mostValuableBag.purchase_price !== null
+    ? formatMoneyWithCurrency(
+        mostValuableBag.purchase_price,
+        mostValuableBag.purchase_price_currency
+      )
+    : "Not added"}
+</div>
                         </div>
 
                         <div className="mt-8">
-                          <FieldLabel>Market context</FieldLabel>
-                          <div className="mt-2 text-sm text-[#6E645B]">
-                            Comparable market data coming soon.
-                          </div>
+                        <FieldLabel>AI market estimate</FieldLabel>
+<div className="mt-2 text-sm text-[#6E645B]">
+  {formatCurrency(mostValuableBag.estimated_low)} –{" "}
+  {formatCurrency(mostValuableBag.estimated_high)}
+</div>
+<div className="mt-2 text-xs text-[#8B7E72]">
+  Directional only and may not reflect manually edited bag details.
+</div>
                         </div>
                       </div>
 
@@ -2216,22 +2254,22 @@ model: manualMode ? manualModel || result.model : result.model,
   <div className="mt-4 h-px bg-[#E7DDD3]" />
 
 <div className="mt-4">
-  <FieldLabel>Acquisition cost</FieldLabel>
-  <div className="mt-2 text-sm font-medium">
-    {bag.purchase_price !== null
-      ? formatMoneyWithCurrency(
-          bag.purchase_price,
-          bag.purchase_price_currency
-        )
-      : "Cost not added"}
-  </div>
+<FieldLabel>Recorded value</FieldLabel>
+<div className="mt-2 text-sm font-medium">
+  {bag.purchase_price !== null
+    ? formatMoneyWithCurrency(
+        bag.purchase_price,
+        bag.purchase_price_currency
+      )
+    : "Value not added"}
+</div>
 </div>
 
 <div className="mt-4">
-  <FieldLabel>Estimated value</FieldLabel>
-  <div className="mt-2 text-sm text-[#6E645B]">
-    {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
-  </div>
+ <FieldLabel>AI market estimate</FieldLabel>
+<div className="mt-2 text-sm text-[#6E645B]">
+  {formatCurrency(bag.estimated_low)} – {formatCurrency(bag.estimated_high)}
+</div>
 </div>
 
 <div className="mt-4 text-xs text-[#8B7E72]">
