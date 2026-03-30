@@ -1003,22 +1003,26 @@ export default function AppPage() {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  if (!file.type.startsWith("image/")) {
-    setError("Please upload a valid image file.");
-    return;
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    setError("Please upload an image smaller than 10MB.");
-    return;
-  }
-
+  // Reset UI
   setSelectedFile(file);
   setLoading(true);
   setResult(null);
   setError("");
   setSaveMessage("");
   setJustSaved(false);
+
+  // Basic validation
+  if (!file.type.startsWith("image/")) {
+    setError("Please upload a valid image file.");
+    setLoading(false);
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    setError("Please upload an image smaller than 10MB.");
+    setLoading(false);
+    return;
+  }
 
   const reader = new FileReader();
 
@@ -1027,55 +1031,37 @@ export default function AppPage() {
       const base64 = reader.result as string;
       setPreview(base64);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // ⛔ prevent double submits (VERY important for viral traffic)
+      if (loading) return;
 
-      const accessToken = session?.access_token;
-
-      if (!accessToken) {
-        setError("Please sign in before identifying a piece.");
-        setLoading(false);
-        return;
-      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
 
       const res = await fetch("/api/identify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ image: base64 }),
+        signal: controller.signal,
       });
 
-      const text = await res.text();
-
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        setError("The server returned an unexpected response.");
-        setLoading(false);
-        return;
-      }
+      clearTimeout(timeout);
 
       if (!res.ok) {
-        setError(
-          data.error || "The identification request could not be completed."
-        );
-        setLoading(false);
-        return;
+        const text = await res.text();
+        throw new Error(text || "Failed to identify piece.");
       }
 
+      const data = await res.json();
       setResult(data);
 
-      if (activeWishForArchive) {
-        setArchiveSourceMessage(
-          `Archive starter loaded from wishlist. AI suggested ${data.brand} ${data.model}.`
-        );
-      }
     } catch (err: any) {
-      setError(err?.message || "Something went wrong.");
+      if (err.name === "AbortError") {
+        setError("This is taking longer than expected. Please try again.");
+      } else {
+        setError(err.message || "Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
