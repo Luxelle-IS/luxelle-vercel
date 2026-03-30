@@ -1000,79 +1000,89 @@ export default function AppPage() {
   }, []);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setSelectedFile(file);
-    setLoading(true);
-    setResult(null);
-    setError("");
-    setSaveMessage("");
-    setJustSaved(false);
-
-    const reader = new FileReader();
-
-    reader.onloadend = async () => {
-      try {
-        const base64 = reader.result as string;
-        setPreview(base64);
-
-const {
-  data: { session },
-} = await supabase.auth.getSession();
-
-const accessToken = session?.access_token;
-
-if (!accessToken) {
-  setError("Please sign in before identifying a piece.");
-  setLoading(false);
-  return;
-}
-
-const res = await fetch("/api/identify", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
-  },
-  body: JSON.stringify({ image: base64 }),
-});
-
-        const text = await res.text();
-
-        let data: any;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          setError("The server returned an unexpected response.");
-          setLoading(false);
-          return;
-        }
-
-        if (!res.ok) {
-          setError(
-            data.error || "The identification request could not be completed."
-          );
-          setLoading(false);
-          return;
-        }
-
-        setResult(data);
-
-        if (activeWishForArchive) {
-          setArchiveSourceMessage(
-            `Archive starter loaded from wishlist. AI suggested ${data.brand} ${data.model}.`
-          );
-        }
-      } catch (err: any) {
-        setError(err?.message || "Something went wrong.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    reader.readAsDataURL(file);
+  if (!file.type.startsWith("image/")) {
+    setError("Please upload a valid image file.");
+    return;
   }
+
+  if (file.size > 10 * 1024 * 1024) {
+    setError("Please upload an image smaller than 10MB.");
+    return;
+  }
+
+  setSelectedFile(file);
+  setLoading(true);
+  setResult(null);
+  setError("");
+  setSaveMessage("");
+  setJustSaved(false);
+
+  const reader = new FileReader();
+
+  reader.onloadend = async () => {
+    try {
+      const base64 = reader.result as string;
+      setPreview(base64);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        setError("Please sign in before identifying a piece.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("/api/identify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ image: base64 }),
+      });
+
+      const text = await res.text();
+
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError("The server returned an unexpected response.");
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        setError(
+          data.error || "The identification request could not be completed."
+        );
+        setLoading(false);
+        return;
+      }
+
+      setResult(data);
+
+      if (activeWishForArchive) {
+        setArchiveSourceMessage(
+          `Archive starter loaded from wishlist. AI suggested ${data.brand} ${data.model}.`
+        );
+      }
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  reader.readAsDataURL(file);
+}
 
   async function uploadImageToStorage(file: File, userId: string) {
     const compressedBlob = await compressImage(file);
