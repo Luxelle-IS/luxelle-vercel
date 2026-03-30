@@ -9,6 +9,13 @@ type SavedBag = {
   estimated_high: number;
   image_url: string;
   created_at: string;
+  purchase_price?: number | null;
+  purchase_price_currency?: string | null;
+  purchase_date?: string | null;
+  condition?: string | null;
+  color?: string | null;
+  material?: string | null;
+  size?: string | null;
 };
 
 type PdfPayload = {
@@ -24,8 +31,17 @@ function formatCurrency(value: number) {
   }).format(value || 0);
 }
 
-function getMidValue(low: number, high: number) {
-  return ((low || 0) + (high || 0)) / 2;
+function formatMoneyWithCurrency(value: number, currency?: string | null) {
+  const code = currency || "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+  } catch {
+    return `${code} ${value}`;
+  }
 }
 
 function truncate(text: string, max: number) {
@@ -101,6 +117,10 @@ export async function POST(req: Request) {
     });
 
     const totalPieces = collection.length;
+    const totalRecordedValue = collection.reduce(
+      (sum, bag) => sum + (bag.purchase_price || 0),
+      0
+    );
     const totalLow = collection.reduce(
       (sum, bag) => sum + (bag.estimated_low || 0),
       0
@@ -121,15 +141,21 @@ export async function POST(req: Request) {
       .slice(0, 4)
       .map(([brand]) => brand);
 
-    const mostValuableBag =
+    const signaturePiece =
       collection.length > 0
         ? [...collection].sort(
-            (a, b) => (b.estimated_high || 0) - (a.estimated_high || 0)
+            (a, b) =>
+              (b.purchase_price || 0) - (a.purchase_price || 0) ||
+              (b.estimated_high || 0) - (a.estimated_high || 0)
           )[0]
         : null;
 
-    const featuredItems = [...collection]
-      .sort((a, b) => (b.estimated_high || 0) - (a.estimated_high || 0))
+    const selectedItems = [...collection]
+      .sort(
+        (a, b) =>
+          (b.purchase_price || 0) - (a.purchase_price || 0) ||
+          (b.estimated_high || 0) - (a.estimated_high || 0)
+      )
       .slice(0, 3);
 
     const generatedAt = new Intl.DateTimeFormat("en-US", {
@@ -138,7 +164,7 @@ export async function POST(req: Request) {
       year: "numeric",
     }).format(new Date());
 
-    // Header block
+    // Header
     page.drawText("LUXELLE", {
       x: x0,
       y: height - 58,
@@ -155,7 +181,7 @@ export async function POST(req: Request) {
       color: colors.ink,
     });
 
-    page.drawText("Private archive dossier", {
+    page.drawText("Private collection dossier", {
       x: x0,
       y: height - 118,
       size: 11,
@@ -171,7 +197,6 @@ export async function POST(req: Request) {
       color: colors.soft,
     });
 
-    // Soft divider
     page.drawLine({
       start: { x: x0, y: height - 136 },
       end: { x: width - x0, y: height - 136 },
@@ -189,8 +214,8 @@ export async function POST(req: Request) {
       { label: "Pieces Archived", value: String(totalPieces) },
       { label: "Wishlist Targets", value: String(wishlistCount) },
       {
-        label: "Collection Value",
-        value: `${formatCurrency(totalLow)} – ${formatCurrency(totalHigh)}`,
+        label: "Recorded Collection Value",
+        value: formatCurrency(totalRecordedValue),
       },
     ];
 
@@ -218,7 +243,7 @@ export async function POST(req: Request) {
       page.drawText(stat.value, {
         x: x + 14,
         y: statsY + 18,
-        size: i === 2 ? 13 : 22,
+        size: i === 2 ? 16 : 22,
         font: fontBold,
         color: colors.ink,
       });
@@ -251,7 +276,7 @@ export async function POST(req: Request) {
       color: colors.soft,
     });
 
-    if (mostValuableBag) {
+    if (signaturePiece) {
       const imageBoxX = x0 + 16;
       const imageBoxY = heroY + 22;
       const imageBoxW = 96;
@@ -265,7 +290,7 @@ export async function POST(req: Request) {
         color: colors.white,
       });
 
-      const embedded = await tryEmbedImage(pdfDoc, mostValuableBag.image_url);
+      const embedded = await tryEmbedImage(pdfDoc, signaturePiece.image_url);
 
       if (embedded) {
         const dims = embedded.scale(1);
@@ -291,7 +316,7 @@ export async function POST(req: Request) {
 
       const tx = imageBoxX + imageBoxW + 16;
 
-      page.drawText(truncate(mostValuableBag.brand || "Unknown", 16), {
+      page.drawText(truncate(signaturePiece.brand || "Unknown", 16), {
         x: tx,
         y: heroY + 88,
         size: 18,
@@ -299,7 +324,7 @@ export async function POST(req: Request) {
         color: colors.ink,
       });
 
-      page.drawText(truncate(mostValuableBag.model || "Unknown", 22), {
+      page.drawText(truncate(signaturePiece.model || "Unknown", 22), {
         x: tx,
         y: heroY + 66,
         size: 11,
@@ -308,15 +333,31 @@ export async function POST(req: Request) {
       });
 
       page.drawText(
-        `${formatCurrency(mostValuableBag.estimated_low)} – ${formatCurrency(
-          mostValuableBag.estimated_high
-        )}`,
+        signaturePiece.purchase_price != null
+          ? formatMoneyWithCurrency(
+              signaturePiece.purchase_price,
+              signaturePiece.purchase_price_currency
+            )
+          : "Recorded value not added",
         {
           x: tx,
           y: heroY + 34,
           size: 11,
           font: fontBold,
           color: colors.ink,
+        }
+      );
+
+      page.drawText(
+        `Market estimate ${formatCurrency(
+          signaturePiece.estimated_low
+        )} – ${formatCurrency(signaturePiece.estimated_high)}`,
+        {
+          x: tx,
+          y: heroY + 18,
+          size: 9,
+          font: fontRegular,
+          color: colors.soft,
         }
       );
     } else {
@@ -349,7 +390,7 @@ export async function POST(req: Request) {
       }
     );
 
-    page.drawText("Archive Notes", {
+    page.drawText("Collection Notes", {
       x: rightX,
       y: heroY + 78,
       size: 10,
@@ -357,16 +398,16 @@ export async function POST(req: Request) {
       color: colors.soft,
     });
 
-    const archiveSummary =
+    const collectionSummary =
       totalPieces === 0
-        ? "Your archive has not begun yet."
+        ? "Your collection has not begun yet."
         : totalPieces === 1
         ? "A focused beginning with one recorded piece."
         : totalPieces < 5
-        ? "A growing private archive with early collection depth."
-        : "An increasingly established archive with clear collector identity.";
+        ? "A growing private collection with early depth and character."
+        : "A more established collection with clear identity and recorded value.";
 
-    page.drawText(archiveSummary, {
+    page.drawText(collectionSummary, {
       x: rightX,
       y: heroY + 56,
       size: 12,
@@ -374,15 +415,31 @@ export async function POST(req: Request) {
       color: colors.ink,
     });
 
-    page.drawText("Market context is intentionally withheld until sufficient comparable data is available.", {
-      x: rightX,
-      y: heroY + 26,
-      size: 10,
-      font: fontRegular,
-      color: colors.soft,
-      maxWidth: rightW - 10,
-      lineHeight: 14,
-    });
+    page.drawText(
+      `Market estimate ${formatCurrency(totalLow)} – ${formatCurrency(
+        totalHigh
+      )}`,
+      {
+        x: rightX,
+        y: heroY + 30,
+        size: 10,
+        font: fontBold,
+        color: colors.ink,
+      }
+    );
+
+    page.drawText(
+      "Market-based pricing is shown directionally and will become more precise as comparable data is introduced.",
+      {
+        x: rightX,
+        y: heroY + 12,
+        size: 9,
+        font: fontRegular,
+        color: colors.soft,
+        maxWidth: rightW - 6,
+        lineHeight: 12,
+      }
+    );
 
     // Featured section
     page.drawLine({
@@ -392,7 +449,7 @@ export async function POST(req: Request) {
       color: colors.line,
     });
 
-    page.drawText("Featured Archive Pieces", {
+    page.drawText("Selected Pieces", {
       x: x0,
       y: 178,
       size: 12,
@@ -406,7 +463,7 @@ export async function POST(req: Request) {
     const cardH = 116;
 
     for (let i = 0; i < 3; i++) {
-      const item = featuredItems[i];
+      const item = selectedItems[i];
       const cardX = x0 + i * (cardW + cardGap);
 
       page.drawRectangle({
@@ -477,9 +534,12 @@ export async function POST(req: Request) {
       });
 
       page.drawText(
-        `${formatCurrency(item.estimated_low)} – ${formatCurrency(
-          item.estimated_high
-        )}`,
+        item.purchase_price != null
+          ? formatMoneyWithCurrency(
+              item.purchase_price,
+              item.purchase_price_currency
+            )
+          : "Recorded value not added",
         {
           x: tx,
           y: cardY + 34,
@@ -490,8 +550,8 @@ export async function POST(req: Request) {
       );
 
       page.drawText(
-        `Midpoint ${formatCurrency(
-          getMidValue(item.estimated_low, item.estimated_high)
+        `Estimate ${formatCurrency(item.estimated_low)} – ${formatCurrency(
+          item.estimated_high
         )}`,
         {
           x: tx,
