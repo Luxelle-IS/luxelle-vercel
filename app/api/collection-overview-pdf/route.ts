@@ -50,6 +50,58 @@ function truncate(text: string, max: number) {
   return `${text.slice(0, max - 1)}…`;
 }
 
+function drawWrappedText({
+  page,
+  text,
+  x,
+  y,
+  maxWidth,
+  font,
+  size,
+  color,
+  lineHeight,
+}: {
+  page: any;
+  text: string;
+  x: number;
+  y: number;
+  maxWidth: number;
+  font: any;
+  size: number;
+  color: any;
+  lineHeight: number;
+}) {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    const width = font.widthOfTextAtSize(test, size);
+
+    if (width <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+
+  if (current) lines.push(current);
+
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x,
+      y: y - index * lineHeight,
+      size,
+      font,
+      color,
+    });
+  });
+
+  return lines.length;
+}
+
 async function tryEmbedImage(pdfDoc: PDFDocument, imageUrl: string) {
   try {
     const res = await fetch(imageUrl);
@@ -252,8 +304,8 @@ export async function POST(req: Request) {
     // Main editorial section
     const heroY = 220;
     const heroH = 150;
-    const leftW = 250;
-    const gap = 18;
+    const leftW = 260;
+    const gap = 22;
     const rightX = x0 + leftW + gap;
     const rightW = contentW - leftW - gap;
 
@@ -315,6 +367,7 @@ export async function POST(req: Request) {
       }
 
       const tx = imageBoxX + imageBoxW + 16;
+      const valueWidth = leftW - (tx - x0) - 18;
 
       page.drawText(truncate(signaturePiece.brand || "Unknown", 16), {
         x: tx,
@@ -348,18 +401,19 @@ export async function POST(req: Request) {
         }
       );
 
-      page.drawText(
-        `Market estimate ${formatCurrency(
+      drawWrappedText({
+        page,
+        text: `Market estimate ${formatCurrency(
           signaturePiece.estimated_low
         )} – ${formatCurrency(signaturePiece.estimated_high)}`,
-        {
-          x: tx,
-          y: heroY + 18,
-          size: 9,
-          font: fontRegular,
-          color: colors.soft,
-        }
-      );
+        x: tx,
+        y: heroY + 18,
+        maxWidth: valueWidth,
+        font: fontRegular,
+        size: 9,
+        color: colors.soft,
+        lineHeight: 11,
+      });
     } else {
       page.drawText("No signature piece yet", {
         x: x0 + 16,
@@ -379,16 +433,17 @@ export async function POST(req: Request) {
       color: colors.soft,
     });
 
-    page.drawText(
-      topBrands.length ? topBrands.join(" • ") : "No brand data yet",
-      {
-        x: rightX,
-        y: heroY + heroH - 42,
-        size: 13,
-        font: fontBold,
-        color: colors.ink,
-      }
-    );
+    drawWrappedText({
+      page,
+      text: topBrands.length ? topBrands.join(" • ") : "No brand data yet",
+      x: rightX,
+      y: heroY + heroH - 42,
+      maxWidth: rightW - 8,
+      font: fontBold,
+      size: 13,
+      color: colors.ink,
+      lineHeight: 15,
+    });
 
     page.drawText("Collection Notes", {
       x: rightX,
@@ -407,12 +462,16 @@ export async function POST(req: Request) {
         ? "A growing private collection with early depth and character."
         : "A more established collection with clear identity and recorded value.";
 
-    page.drawText(collectionSummary, {
+    drawWrappedText({
+      page,
+      text: collectionSummary,
       x: rightX,
       y: heroY + 56,
-      size: 12,
+      maxWidth: rightW - 8,
       font: fontRegular,
+      size: 12,
       color: colors.ink,
+      lineHeight: 15,
     });
 
     page.drawText(
@@ -421,27 +480,26 @@ export async function POST(req: Request) {
       )}`,
       {
         x: rightX,
-        y: heroY + 30,
+        y: heroY + 28,
         size: 10,
         font: fontBold,
         color: colors.ink,
       }
     );
 
-    page.drawText(
-      "Market-based pricing is shown directionally and will become more precise as comparable data is introduced.",
-      {
-        x: rightX,
-        y: heroY + 12,
-        size: 9,
-        font: fontRegular,
-        color: colors.soft,
-        maxWidth: rightW - 6,
-        lineHeight: 12,
-      }
-    );
+    drawWrappedText({
+      page,
+      text: "Market-based pricing is shown directionally and will become more precise as comparable data is introduced.",
+      x: rightX,
+      y: heroY + 10,
+      maxWidth: rightW - 8,
+      font: fontRegular,
+      size: 9,
+      color: colors.soft,
+      lineHeight: 11,
+    });
 
-    // Featured section
+    // Selected pieces divider
     page.drawLine({
       start: { x: x0, y: 198 },
       end: { x: width - x0, y: 198 },
@@ -516,6 +574,7 @@ export async function POST(req: Request) {
       }
 
       const tx = cardX + 96;
+      const textWidth = cardW - 108;
 
       page.drawText(truncate(item.brand || "Unknown", 18), {
         x: tx,
@@ -549,18 +608,19 @@ export async function POST(req: Request) {
         }
       );
 
-      page.drawText(
-        `Estimate ${formatCurrency(item.estimated_low)} – ${formatCurrency(
+      drawWrappedText({
+        page,
+        text: `Estimate ${formatCurrency(item.estimated_low)} – ${formatCurrency(
           item.estimated_high
         )}`,
-        {
-          x: tx,
-          y: cardY + 16,
-          size: 9,
-          font: fontRegular,
-          color: colors.soft,
-        }
-      );
+        x: tx,
+        y: cardY + 16,
+        maxWidth: textWidth,
+        font: fontRegular,
+        size: 9,
+        color: colors.soft,
+        lineHeight: 10,
+      });
     }
 
     page.drawText("Generated by Luxelle", {
