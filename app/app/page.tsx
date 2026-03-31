@@ -1681,8 +1681,8 @@ model: manualMode ? manualModel || result.model : result.model,
             <AppShellCard className="h-full p-8">
               <SectionHeader
                 eyebrow="Identify a piece"
-                title="Add a new archive entry."
-                description="Upload an image and let Luxelle identify the piece and prepare the archive record."
+                title="Add a new portfolio entry."
+                description="Upload a handbag and instantly turn it into a private luxury portfolio record."
               />
 
               {!preview && !result && !loading && collection.length === 0 && (
@@ -1761,11 +1761,17 @@ model: manualMode ? manualModel || result.model : result.model,
                 </motion.div>
               )}
 
-              {loading && (
-                <div className="mt-6 rounded-[24px] bg-[#F3EAE1] p-4 text-sm">
-                  Reviewing your piece...
-                </div>
-              )}
+             {loading && (
+  <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
+    <FieldLabel>Preparing your archive record</FieldLabel>
+    <div className="mt-3 text-sm text-[#2C2A29]">
+      Identifying silhouette, hardware, and signature details...
+    </div>
+    <div className="mt-2 text-sm text-[#6E645B]">
+      Building a refined Luxelle suggestion for your collection.
+    </div>
+  </div>
+)}
 
               {error && !loading && (
                 <div className="mt-6 rounded-[24px] border border-[#E7DDD3] bg-[#FCF8F4] p-5">
@@ -1780,7 +1786,7 @@ model: manualMode ? manualModel || result.model : result.model,
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-6 rounded-[28px] border border-[#E7DDD3] bg-[#FCF8F4] p-6"
                 >
-                  <FieldLabel>Suggested match</FieldLabel>
+                  <FieldLabel>AI suggestion</FieldLabel>
                   <div className="mt-4 flex items-center gap-3">
   <button
     type="button"
@@ -1909,7 +1915,7 @@ model: manualMode ? manualModel || result.model : result.model,
 
                   <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <FieldLabel>Acquisition cost</FieldLabel>
+                      <FieldLabel>Recorded value</FieldLabel>
                       <input
                         type="number"
                         placeholder="Optional"
@@ -2093,7 +2099,7 @@ model: manualMode ? manualModel || result.model : result.model,
                     <div className="flex flex-col justify-between p-8 md:p-10">
                       <div>
                         <div className="text-[11px] tracking-[0.32em] uppercase text-[#8B7E72]">
-                          Signature piece
+                          Collection centerpiece
                         </div>
                         <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
                           {mostValuableBag.brand}
@@ -2146,7 +2152,7 @@ model: manualMode ? manualModel || result.model : result.model,
                 ) : (
                   <div className="p-10">
                     <div className="text-[11px] tracking-[0.32em] uppercase text-[#8B7E72]">
-                      Signature piece
+                      Collection centerpiece
                     </div>
                     <div className="mt-4 text-2xl font-semibold">
                       Your most important piece appears here.
