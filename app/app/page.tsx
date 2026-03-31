@@ -751,6 +751,7 @@ const manualModelSuggestions = useMemo(
 );
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState("");
+  const successCardRef = useRef<HTMLDivElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -842,6 +843,15 @@ const manualModelSuggestions = useMemo(
     const dismissed = window.localStorage.getItem("luxelle_onboarding_hidden");
     setHideOnboarding(dismissed === "true");
   }, []);
+
+  useEffect(() => {
+  if (justSaved && successCardRef.current) {
+    successCardRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+}, [justSaved]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -1764,7 +1774,7 @@ model: manualMode ? manualModel || result.model : result.model,
                 </div>
               )}
 
-              {result && !loading && (
+              {result && !loading && !justSaved &&  (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2043,27 +2053,29 @@ model: manualMode ? manualModel || result.model : result.model,
               )}
 
 {justSaved && saveMessage && (
-  <FirstSaveCelebration
-    message={saveMessage}
-    brand={manualMode ? manualBrand : result?.brand}
-    model={manualMode ? manualModel : result?.model}
-    recordedValue={
-      purchasePrice
-        ? formatMoneyWithCurrency(
-            Number(purchasePrice),
-            purchasePriceCurrency
-          )
-        : null
-    }
-    previewImage={preview || null}
-    onUploadAnother={() => {
-      clearCurrentBagState();
-      setSaveMessage("");
-      setJustSaved(false);
-      scrollToUploadPanel();
-    }}
-    onGoWishlist={scrollToWishlist}
-  />
+  <div ref={successCardRef}>
+    <FirstSaveCelebration
+      message={saveMessage}
+      brand={manualMode ? manualBrand : result?.brand}
+      model={manualMode ? manualModel : result?.model}
+      recordedValue={
+        purchasePrice
+          ? formatMoneyWithCurrency(
+              Number(purchasePrice),
+              purchasePriceCurrency
+            )
+          : null
+      }
+      previewImage={preview || null}
+      onUploadAnother={() => {
+        clearCurrentBagState();
+        setSaveMessage("");
+        setJustSaved(false);
+        scrollToUploadPanel();
+      }}
+      onGoWishlist={scrollToWishlist}
+    />
+  </div>
 )}
             </AppShellCard>
           </motion.section>
